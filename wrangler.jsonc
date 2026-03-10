@@ -15,5 +15,20 @@
 	"observability": {
 		"enabled": true
 	},
-	"upload_source_maps": true
+	"upload_source_maps": true,
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "ielts",
+			"database_id": "d5ef712f-10ee-4808-aa34-45d78ee68b86",
+			"migrations_dir": "migrations",
+			"remote": true
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "STORAGE",
+			"bucket_name": "ielts"
+		}
+	]
 }
