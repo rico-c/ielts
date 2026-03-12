@@ -2,6 +2,7 @@
 
 import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 const navItems = [
@@ -21,8 +22,14 @@ export default function DashboardLayout({
     <main className="ielts-shell min-h-screen px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="glass-panel rounded-[2rem] p-5">
-          <Link href="/" className="font-display text-3xl italic text-slate-900">
-            IELTS
+          <Link href="/" className="inline-flex items-center">
+            <Image
+              src="/logo.png"
+              alt="优秀IELTS"
+              width={160}
+              height={44}
+              className="h-9 w-auto"
+            />
           </Link>
           <p className="text-ink-soft mt-3 text-sm leading-7">
             这里是受保护区域。路由会经过 Clerk middleware，未登录用户会被送去登录页。
