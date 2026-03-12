@@ -145,28 +145,28 @@ export default function IeltsTestRenderer(props: Props) {
   }, [apiUrl]);
 
   if (state === "loading" || state === "idle") {
-    return <div className="rounded-xl border border-black/10 bg-white p-5">正在加载题目...</div>;
+    return <div className="rounded-[1.5rem] border border-[var(--line)] bg-white/70 p-5">正在加载题目...</div>;
   }
 
   if (state === "error") {
-    return <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-red-700">加载失败: {error}</div>;
+    return <div className="rounded-[1.5rem] border border-red-200 bg-red-50 p-5 text-red-700">加载失败: {error}</div>;
   }
 
   if (!data) {
-    return <div className="rounded-xl border border-black/10 bg-white p-5">暂无题目数据。</div>;
+    return <div className="rounded-[1.5rem] border border-[var(--line)] bg-white/70 p-5">暂无题目数据。</div>;
   }
 
   const tableMap = new Map(data.tables.map((t) => [t.id, t]));
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8">
-      <section className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold text-black">{data.title}</h1>
-        <p className="mt-2 text-sm text-black/60">
+      <section className="rounded-[1.75rem] border border-[var(--line)] bg-white/68 p-6 shadow-[0_16px_40px_rgba(58,46,34,0.06)]">
+        <h1 className="text-2xl font-semibold text-slate-900">{data.title}</h1>
+        <p className="mt-2 text-sm text-slate-500">
           {data.series} Book {data.bookNo ?? "-"} Test {data.testNo ?? "-"} ({data.module || "-"})
           {data.testCode ? ` · ${data.testCode}` : ""}
         </p>
-        <p className="mt-1 text-xs text-black/50">来源: {data.sourceUrl}</p>
+        <p className="mt-1 text-xs text-slate-500">来源: {data.sourceUrl}</p>
 
         {data.audioUrls.length > 0 ? (
           <div className="mt-4 grid gap-3">
@@ -185,8 +185,8 @@ export default function IeltsTestRenderer(props: Props) {
         const partTables = part.tables.map((id) => tableMap.get(id)).filter(Boolean) as IeltsTable[];
 
         return (
-          <section key={part.part} className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-black">{part.part}</h2>
+          <section key={part.part} className="rounded-[1.75rem] border border-[var(--line)] bg-white/68 p-6 shadow-[0_16px_40px_rgba(58,46,34,0.06)]">
+            <h2 className="text-xl font-semibold text-slate-900">{part.part}</h2>
 
             {partTables.length > 0 ? (
               <div className="mt-4 flex flex-col gap-4">
@@ -204,19 +204,19 @@ export default function IeltsTestRenderer(props: Props) {
                 const qLabel = group.questions.length > 1 ? `Q${firstNo}-${lastNo}` : `Q${q.number}`;
 
                 return (
-                  <article key={group.key} className="rounded-xl border border-black/10 bg-[#faf8f4] p-4">
+                  <article key={group.key} className="rounded-[1.4rem] border border-[var(--line)] bg-[rgba(255,249,242,0.96)] p-4">
                     <div className="flex flex-wrap items-center gap-2 text-sm">
-                      <span className="rounded-full bg-black px-2 py-0.5 text-white">{qLabel}</span>
-                      <span className="rounded-full border border-black/20 px-2 py-0.5">{typeLabel(q.type)}</span>
+                      <span className="rounded-full bg-slate-900 px-2 py-0.5 text-white">{qLabel}</span>
+                      <span className="rounded-full border border-[var(--line)] bg-white/80 px-2 py-0.5 text-slate-700">{typeLabel(q.type)}</span>
                       {group.questions.length > 1 ? (
-                        <span className="rounded-full border border-black/20 px-2 py-0.5">共 {group.questions.length} 题</span>
+                        <span className="rounded-full border border-[var(--line)] bg-white/80 px-2 py-0.5 text-slate-700">共 {group.questions.length} 题</span>
                       ) : null}
-                      {q.tableRef ? <span className="text-black/60">关联表格: {q.tableRef}</span> : null}
+                      {q.tableRef ? <span className="text-slate-500">关联表格: {q.tableRef}</span> : null}
                     </div>
 
-                    {q.subtitle ? <p className="mt-2 text-sm text-black/60">{q.subtitle}</p> : null}
-                    {q.instruction ? <p className="mt-1 text-sm font-medium">{q.instruction}</p> : null}
-                    {q.prompt ? <p className="mt-1">{q.prompt}</p> : null}
+                    {q.subtitle ? <p className="mt-2 text-sm text-slate-500">{q.subtitle}</p> : null}
+                    {q.instruction ? <p className="mt-1 text-sm font-medium text-slate-800">{q.instruction}</p> : null}
+                    {q.prompt ? <p className="mt-1 text-slate-700">{q.prompt}</p> : null}
 
                     {q.imageUrls.length > 0 ? (
                       <div className="mt-3 grid gap-3">
@@ -226,7 +226,7 @@ export default function IeltsTestRenderer(props: Props) {
                             href={url}
                             target="_blank"
                             rel="noreferrer"
-                            className="block overflow-hidden rounded-lg border border-black/10 bg-white"
+                            className="block overflow-hidden rounded-xl border border-[var(--line)] bg-white"
                           >
                             <img
                               src={url}
@@ -240,7 +240,7 @@ export default function IeltsTestRenderer(props: Props) {
                     ) : null}
 
                     {q.options.length > 0 ? (
-                      <ul className="mt-2 space-y-1 text-sm">
+                      <ul className="mt-2 space-y-1 text-sm text-slate-700">
                         {q.options.map((opt) => (
                           <li key={`${qLabel}-${opt.label}`}>
                             {opt.label}. {opt.text}

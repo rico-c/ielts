@@ -132,10 +132,10 @@ export default function ElevenLabsVoiceAssistant({ agentId }: ElevenLabsVoiceAss
   }
 
   return (
-    <section className="mx-auto flex w-full max-w-3xl flex-col gap-4 rounded-2xl border border-black/10 bg-white p-6 shadow-sm">
+    <section className="glass-panel mx-auto flex w-full max-w-none flex-col gap-4 rounded-[2rem] p-6 sm:p-8">
       <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold text-black">AI 口语助教</h1>
-        <span className="text-sm text-black/60">
+        <h1 className="text-xl font-semibold text-slate-900">AI 口语助教</h1>
+        <span className="text-sm text-slate-500">
           状态: {statusLabel}
           {conversation.isSpeaking ? " · AI讲话中" : ""}
         </span>
@@ -146,7 +146,7 @@ export default function ElevenLabsVoiceAssistant({ agentId }: ElevenLabsVoiceAss
           type="button"
           onClick={handleStartSession}
           disabled={conversation.status !== "disconnected"}
-          className="rounded-lg bg-black px-3 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-black/40"
+          className="rounded-full bg-[var(--accent-deep)] px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-[rgba(159,77,41,0.38)]"
         >
           开始对话
         </button>
@@ -154,7 +154,7 @@ export default function ElevenLabsVoiceAssistant({ agentId }: ElevenLabsVoiceAss
           type="button"
           onClick={handleEndSession}
           disabled={conversation.status === "disconnected"}
-          className="rounded-lg border border-black/20 px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:text-black/40"
+          className="rounded-full border border-[var(--line)] bg-white/70 px-4 py-2 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:text-slate-400"
         >
           结束对话
         </button>
@@ -162,13 +162,13 @@ export default function ElevenLabsVoiceAssistant({ agentId }: ElevenLabsVoiceAss
           type="button"
           onClick={() => setMicMuted((prev) => !prev)}
           disabled={conversation.status !== "connected"}
-          className="rounded-lg border border-black/20 px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:text-black/40"
+          className="rounded-full border border-[var(--line)] bg-white/70 px-4 py-2 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:text-slate-400"
         >
           {micMuted ? "取消静音" : "麦克风静音"}
         </button>
       </div>
 
-      <label className="flex items-center gap-3 text-sm text-black/70">
+      <label className="flex items-center gap-3 text-sm text-slate-600">
         音量
         <input
           type="range"
@@ -182,17 +182,17 @@ export default function ElevenLabsVoiceAssistant({ agentId }: ElevenLabsVoiceAss
         <span>{Math.round(volume * 100)}%</span>
       </label>
 
-      <div className="h-80 overflow-y-auto rounded-xl border border-black/10 bg-[#faf8f4] p-4">
+      <div className="h-80 overflow-y-auto rounded-[1.5rem] border border-[var(--line)] bg-[rgba(255,250,244,0.9)] p-4">
         {messages.length === 0 ? (
-          <p className="text-sm text-black/50">开始语音会话后，这里会显示你和 AI 的对话内容。</p>
+          <p className="text-sm text-slate-500">开始语音会话后，这里会显示你和 AI 的对话内容。</p>
         ) : (
           <ul className="space-y-3">
             {messages.map((message) => (
               <li key={message.id} className="text-sm">
-                <span className="mr-2 inline-block rounded-full border border-black/20 px-2 py-0.5 text-xs uppercase">
+                <span className="mr-2 inline-block rounded-full border border-[var(--line)] bg-white/80 px-2 py-0.5 text-xs uppercase text-slate-600">
                   {message.role}
                 </span>
-                <span>{message.text}</span>
+                <span className="text-slate-800">{message.text}</span>
               </li>
             ))}
           </ul>
@@ -209,18 +209,18 @@ export default function ElevenLabsVoiceAssistant({ agentId }: ElevenLabsVoiceAss
             }
           }}
           placeholder="输入文字继续对话"
-          className="flex-1 rounded-lg border border-black/20 px-3 py-2 text-sm outline-none focus:border-black/60"
+          className="flex-1 rounded-full border border-[var(--line)] bg-white/80 px-4 py-3 text-sm text-slate-800 outline-none focus:border-[var(--accent-deep)]"
         />
         <button
           type="submit"
           disabled={conversation.status !== "connected"}
-          className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-black/40"
+          className="rounded-full bg-slate-900 px-5 py-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-slate-400"
         >
           发送
         </button>
       </form>
 
-      {error ? <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
     </section>
   );
 }

@@ -204,3 +204,5 @@ next-env.d.ts
 
 .yarn
 .vscode
+# clerk configuration (can include secrets)
+/.clerk/
