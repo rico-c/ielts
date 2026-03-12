@@ -173,7 +173,7 @@ export function getDbOrThrow(): D1Database {
   // Fallback init for local dev in case Next config init hook is not picked up.
   initOpenNextCloudflareForDev();
   const { env } = getCloudflareContext();
-  const db = env?.DB as D1Database | undefined;
+  const db = (env as { DB?: D1Database } | undefined)?.DB;
   if (!db) {
     throw new Error("Cloudflare D1 binding \"DB\" is not available in current runtime.");
   }
