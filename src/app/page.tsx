@@ -1,15 +1,12 @@
 
+import ElevenLabsVoiceAssistant from "@/components/ElevenLabsVoiceAssistant";
 
 export default function Home() {
+  const agentId = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID ?? "";
+
   return (
     <main className="min-h-screen bg-[#f4f1ea]">
-      123
-      {/* <IeltsTestRenderer
-        series="Cambridge IELTS"
-        bookNo={20}
-        testNo={4}
-        module="listening"
-      /> */}
+      <ElevenLabsVoiceAssistant agentId={agentId} />
     </main>
   );
 }

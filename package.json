@@ -12,6 +12,7 @@
 		"publish": true
 	},
 	"dependencies": {
+		"@elevenlabs/react": "^0.14.2",
 		"@opennextjs/cloudflare": "1.14.0",
 		"next": "16.0.7",
 		"react": "19.2.1",
