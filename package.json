@@ -31,6 +31,7 @@
 		"wrangler": "4.56.0"
 	},
 	"private": true,
+	"packageManager": "yarn@4.5.0",
 	"scripts": {
 		"build": "next build",
 		"cf-typegen": "wrangler types --env-interface CloudflareEnv env.d.ts",
