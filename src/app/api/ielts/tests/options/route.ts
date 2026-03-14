@@ -1,25 +1,24 @@
 import { NextResponse } from "next/server";
-import { getAvailableIeltsTestNos, getDbOrThrow } from "@/lib/ielts-db";
-
-function toOptionalNumber(value: string | null): number | undefined {
-  if (!value) return undefined;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : undefined;
-}
+import { getAvailableListeningTestNos } from "@/lib/ielts-db";
 
 export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const module = searchParams.get("module");
+  const bookNo = Number(searchParams.get("bookNo"));
+
+  if (module !== "listening") {
+    return NextResponse.json({ testNos: [] });
+  }
+
+  if (!Number.isFinite(bookNo)) {
+    return NextResponse.json({ error: "Invalid bookNo." }, { status: 400 });
+  }
+
   try {
-    const { searchParams } = new URL(request.url);
-    const series = searchParams.get("series") || undefined;
-    const bookNo = toOptionalNumber(searchParams.get("bookNo"));
-    const module = searchParams.get("module") || undefined;
-
-    const db = getDbOrThrow();
-    const testNos = await getAvailableIeltsTestNos(db, { series, bookNo, module });
-
+    const testNos = await getAvailableListeningTestNos(bookNo);
     return NextResponse.json({ testNos });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
+    const message = error instanceof Error ? error.message : "Failed to load test options.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

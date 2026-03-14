@@ -1,30 +1,31 @@
 import { NextResponse } from "next/server";
-import { getDbOrThrow, getLatestIeltsTestData } from "@/lib/ielts-db";
-
-function toOptionalNumber(value: string | null): number | undefined {
-  if (!value) return undefined;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : undefined;
-}
+import { getAvailableListeningTestNos } from "@/lib/ielts-db";
 
 export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const module = searchParams.get("module") ?? "listening";
+  const bookNo = Number(searchParams.get("bookNo") ?? "20");
+
+  if (module !== "listening") {
+    return NextResponse.json({ error: "Only listening is supported right now." }, { status: 400 });
+  }
+
+  if (!Number.isFinite(bookNo)) {
+    return NextResponse.json({ error: "Invalid bookNo." }, { status: 400 });
+  }
+
   try {
-    const { searchParams } = new URL(request.url);
-    const series = searchParams.get("series") || undefined;
-    const bookNo = toOptionalNumber(searchParams.get("bookNo"));
-    const testNo = toOptionalNumber(searchParams.get("testNo"));
-    const module = searchParams.get("module") || undefined;
+    const testNos = await getAvailableListeningTestNos(bookNo);
+    const latestTestNo = testNos.at(-1) ?? null;
 
-    const db = getDbOrThrow();
-    const data = await getLatestIeltsTestData(db, { series, bookNo, testNo, module });
-
-    if (!data) {
-      return NextResponse.json({ error: "No IELTS test found for current filters." }, { status: 404 });
-    }
-
-    return NextResponse.json({ data });
+    return NextResponse.json({
+      bookNo,
+      module,
+      latestTestNo,
+      testNos,
+    });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
+    const message = error instanceof Error ? error.message : "Failed to load latest test.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

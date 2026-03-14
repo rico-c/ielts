@@ -1,494 +1,318 @@
-import {
-  getCloudflareContext,
-  initOpenNextCloudflareForDev,
-} from "@opennextjs/cloudflare";
-import type {
-  IeltsPart,
-  IeltsPassage,
-  IeltsQuestion,
-  IeltsQuestionGroup,
-  IeltsQuestionOption,
-  IeltsTable,
-  IeltsTableCell,
-  IeltsTestData,
-  QuestionType,
-} from "@/types/ielts";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 
-interface TestRow {
-  id: number;
-  source_url: string;
-  source_page_id: number | null;
-  title: string;
-  scraped_at: string | null;
-  series: string | null;
-  book_no: number | null;
-  test_no: number | null;
-  module: string | null;
-  test_code: string | null;
-}
+export type ListeningSharedOption = {
+  id: string;
+  label: string;
+  text: string;
+  sortOrder: number;
+};
 
-interface PartRow {
-  part_title: string;
-  sort_order: number;
-}
+export type ListeningQuestion = {
+  id: string;
+  questionNo: number;
+  stem: string;
+  subLabel: string | null;
+  answerText: string | null;
+  answerJson: string | null;
+  sortOrder: number;
+};
 
-interface QuestionRow {
-  question_no: number;
-  question_type: QuestionType;
-  question_subtype: string | null;
-  group_ref: string | null;
-  passage_no: number | null;
-  subtitle: string | null;
-  instruction: string | null;
-  prompt: string | null;
-  image_urls_json: string | null;
-  answer: string | null;
-  table_ref: string | null;
-  question_meta_json: string | null;
-  part_title: string | null;
-}
-
-interface OptionRow {
-  question_no: number;
-  option_label: string;
-  option_text: string;
-  sort_order: number;
-}
-
-interface TableRow {
-  table_ref: string;
-  part_title: string | null;
-  question_numbers_json: string;
-  text_content: string | null;
-  raw_html: string | null;
-  sort_order: number;
-}
-
-interface CellRow {
-  table_ref: string;
-  row_index: number;
-  col_index: number;
-  tag: string;
-  text_content: string | null;
-  cell_html: string | null;
-  colspan: number;
-  rowspan: number;
-}
-
-interface PassageRow {
-  passage_no: number;
-  part_title: string | null;
+export type ListeningQuestionGroup = {
+  id: string;
+  groupNo: number;
   title: string | null;
-  text_content: string | null;
-  raw_html: string | null;
-  sort_order: number;
-}
+  instructionHtml: string | null;
+  contentHtml: string | null;
+  questionType: string;
+  answerRule: string | null;
+  questionRangeStart: number | null;
+  questionRangeEnd: number | null;
+  sharedOptions: ListeningSharedOption[];
+  questions: ListeningQuestion[];
+};
 
-interface GroupRow {
-  group_ref: string;
-  part_title: string | null;
-  passage_no: number | null;
-  heading: string | null;
-  instruction: string | null;
-  question_type: QuestionType;
-  question_subtype: string | null;
-  question_from: number | null;
-  question_to: number | null;
-  shared_prompt: string | null;
-  option_set_json: string | null;
-  sort_order: number;
-}
+export type ListeningPart = {
+  id: string;
+  partNo: number;
+  title: string;
+  instructionHtml: string | null;
+  contentHtml: string | null;
+  audioUrl: string | null;
+  sortOrder: number;
+  groups: ListeningQuestionGroup[];
+};
 
-interface FilterInput {
-  series?: string;
-  bookNo?: number;
-  testNo?: number;
-  module?: string;
-}
+export type ListeningPracticePaper = {
+  id: string;
+  title: string;
+  book: string | null;
+  testNo: number | null;
+  module: "listening";
+  parts: ListeningPart[];
+};
 
-interface AvailableTestNoRow {
+type PaperRow = {
+  id: string;
+  title: string;
+  book: string | null;
   test_no: number | null;
+};
+
+type PartRow = {
+  id: string;
+  part_no: number;
+  title: string;
+  instruction_html: string | null;
+  content_html: string | null;
+  audio_url: string | null;
+  sort_order: number;
+};
+
+type GroupRow = {
+  id: string;
+  part_id: string;
+  group_no: number;
+  title: string | null;
+  instruction_html: string | null;
+  content_html: string | null;
+  question_type: string;
+  answer_rule: string | null;
+  question_range_start: number | null;
+  question_range_end: number | null;
+  shared_options_json: string | null;
+};
+
+type QuestionRow = {
+  id: string;
+  group_id: string;
+  question_no: number;
+  stem: string;
+  sub_label: string | null;
+  answer_text: string | null;
+  answer_json: string | null;
+  sort_order: number;
+};
+
+function getPaperTitle(bookNo: number) {
+  return `IELTS${bookNo}`;
 }
 
-function parseJsonArray(value: string): number[] {
+async function getDb() {
+  const { env } = await getCloudflareContext({ async: true });
+
+  if (!env.DB) {
+    throw new Error("Cloudflare D1 binding DB is not configured.");
+  }
+
+  return env.DB;
+}
+
+function isSequentialAlpha(labels: string[]) {
+  return labels.every((label, index) => label === String.fromCharCode(65 + index));
+}
+
+function isSequentialRoman(labels: string[]) {
+  const roman = ["i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x"];
+  return labels.every((label, index) => label.toLowerCase() === roman[index]);
+}
+
+function isBooleanOptionSet(labels: string[]) {
+  const normalized = new Set(labels.map((label) => label.toUpperCase()));
+  const allowed = ["TRUE", "FALSE", "NOT GIVEN", "YES", "NO"];
+  return labels.length > 0 && labels.every((label) => allowed.includes(label.toUpperCase())) && normalized.size >= 2;
+}
+
+function shouldRepairBrokenFillBlankOptions(options: ListeningSharedOption[], questionType: string) {
+  if (questionType !== "fill_blank" || options.length === 0) {
+    return false;
+  }
+
+  const labels = options.map((option) => option.label.trim()).filter(Boolean);
+  if (labels.length !== options.length) {
+    return false;
+  }
+
+  if (isSequentialAlpha(labels) || isSequentialRoman(labels) || isBooleanOptionSet(labels)) {
+    return false;
+  }
+
+  return options.every((option) => option.text.trim().length > 0);
+}
+
+function parseSharedOptions(raw: string | null, questionType: string): ListeningSharedOption[] {
+  if (!raw) return [];
+
   try {
-    const data = JSON.parse(value);
-    return Array.isArray(data) ? data.filter((n) => Number.isFinite(n)) : [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+
+    const options = parsed
+      .map((item, index) => ({
+        id: typeof item?.id === "string" ? item.id : String(item?.id ?? `${index}`),
+        label: typeof item?.label === "string" ? item.label : String(item?.label ?? index + 1),
+        text: typeof item?.text === "string" ? item.text : "",
+        sortOrder: typeof item?.sortOrder === "number" ? item.sortOrder : index,
+      }))
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+
+    if (shouldRepairBrokenFillBlankOptions(options, questionType)) {
+      return options.map((option) => ({
+        ...option,
+        label: "",
+        text: `${option.label}${option.text}`.trim(),
+      }));
+    }
+
+    return options;
   } catch {
     return [];
   }
 }
 
-function parseJsonStringArray(value: string | null): string[] {
-  if (!value) return [];
-  try {
-    const data = JSON.parse(value);
-    return Array.isArray(data) ? data.filter((s) => typeof s === "string" && s.length > 0) : [];
-  } catch {
-    return [];
-  }
-}
+export async function getAvailableListeningTestNos(bookNo: number) {
+  const db = await getDb();
+  const title = getPaperTitle(bookNo);
 
-function parseJsonObject(value: string | null): Record<string, unknown> {
-  if (!value) return {};
-  try {
-    const data = JSON.parse(value);
-    return data && typeof data === "object" && !Array.isArray(data) ? data : {};
-  } catch {
-    return {};
-  }
-}
-
-function parseOptionSetJson(value: string | null): IeltsQuestionOption[] {
-  if (!value) return [];
-  try {
-    const data = JSON.parse(value);
-    if (!Array.isArray(data)) return [];
-    return data
-      .map((item, index) => {
-        if (!item || typeof item !== "object") return null;
-        const raw = item as { label?: unknown; text?: unknown; sortOrder?: unknown };
-        if (typeof raw.label !== "string" || typeof raw.text !== "string") return null;
-        return {
-          label: raw.label,
-          text: raw.text,
-          sortOrder: typeof raw.sortOrder === "number" ? raw.sortOrder : index,
-        };
-      })
-      .filter(Boolean) as IeltsQuestionOption[];
-  } catch {
-    return [];
-  }
-}
-
-function groupTableRows(cells: IeltsTableCell[]): IeltsTableCell[][] {
-  const rows = new Map<number, IeltsTableCell[]>();
-  for (const cell of cells) {
-    if (!rows.has(cell.rowIndex)) rows.set(cell.rowIndex, []);
-    rows.get(cell.rowIndex)?.push(cell);
-  }
-
-  return [...rows.entries()]
-    .sort((a, b) => a[0] - b[0])
-    .map(([, rowCells]) => rowCells.sort((a, b) => a.colIndex - b.colIndex));
-}
-
-export function getDbOrThrow(): D1Database {
-  // Fallback init for local dev in case Next config init hook is not picked up.
-  initOpenNextCloudflareForDev();
-  const { env } = getCloudflareContext();
-  const db = (env as { DB?: D1Database } | undefined)?.DB;
-  if (!db) {
-    throw new Error("Cloudflare D1 binding \"DB\" is not available in current runtime.");
-  }
-  return db;
-}
-
-export async function getLatestIeltsTestData(
-  db: D1Database,
-  filters: FilterInput = {}
-): Promise<IeltsTestData | null> {
-  const conditions: string[] = [];
-  const bindValues: Array<string | number> = [];
-
-  if (filters.series) {
-    conditions.push("series = ?");
-    bindValues.push(filters.series);
-  }
-  if (typeof filters.bookNo === "number") {
-    conditions.push("book_no = ?");
-    bindValues.push(filters.bookNo);
-  }
-  if (typeof filters.testNo === "number") {
-    conditions.push("test_no = ?");
-    bindValues.push(filters.testNo);
-  }
-  if (filters.module) {
-    conditions.push("module = ?");
-    bindValues.push(filters.module);
-  }
-
-  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-
-  const testResult = await db
+  const { results } = await db
     .prepare(
-      `SELECT id, source_url, source_page_id, title, scraped_at, series, book_no, test_no, module, test_code
-       FROM ielts_tests
-       ${whereClause}
-       ORDER BY updated_at DESC, id DESC
-       LIMIT 1`
+      `
+        SELECT DISTINCT test_no
+        FROM exam_papers
+        WHERE title = ?1
+          AND book = 'listening'
+          AND test_no IS NOT NULL
+        ORDER BY test_no ASC
+      `,
     )
-    .bind(...bindValues)
-    .all<TestRow>();
+    .bind(title)
+    .all<{ test_no: number | null }>();
 
-  const test = testResult.results[0];
-  if (!test) return null;
+  return (results ?? [])
+    .map((row: { test_no: number | null }) => row.test_no)
+    .filter((value: number | null): value is number => typeof value === "number" && Number.isFinite(value));
+}
 
-  const testId = test.id;
+export async function getListeningPracticePaper(bookNo: number, testNo: number) {
+  const db = await getDb();
+  const title = getPaperTitle(bookNo);
 
-  const [audioResult, partsResult, optionsResult, tablesResult, cellsResult] = await Promise.all([
+  const paper = await db
+    .prepare(
+      `
+        SELECT id, title, book, test_no
+        FROM exam_papers
+        WHERE title = ?1
+          AND book = 'listening'
+          AND test_no = ?2
+        LIMIT 1
+      `,
+    )
+    .bind(title, testNo)
+    .first<PaperRow>();
+
+  if (!paper) {
+    return null;
+  }
+
+  const [partsResult, groupsResult, questionsResult] = await Promise.all([
     db
-      .prepare("SELECT url FROM ielts_test_audio_urls WHERE test_id = ? ORDER BY sort_order ASC, id ASC")
-      .bind(testId)
-      .all<{ url: string }>(),
-    db
-      .prepare("SELECT part_title, sort_order FROM ielts_test_parts WHERE test_id = ? ORDER BY sort_order ASC, id ASC")
-      .bind(testId)
+      .prepare(
+        `
+          SELECT id, part_no, title, instruction_html, content_html, audio_url, sort_order
+          FROM paper_parts
+          WHERE paper_id = ?1
+            AND module = 'listening'
+          ORDER BY sort_order ASC, part_no ASC
+        `,
+      )
+      .bind(paper.id)
       .all<PartRow>(),
     db
       .prepare(
-        `SELECT q.question_no, o.option_label, o.option_text, o.sort_order
-         FROM ielts_question_options o
-         JOIN ielts_questions q ON o.question_id = q.id
-         WHERE q.test_id = ?
-         ORDER BY q.question_no ASC, o.sort_order ASC, o.id ASC`
+        `
+          SELECT qg.id, qg.part_id, qg.group_no, qg.title, qg.instruction_html, qg.content_html,
+                 qg.question_type, qg.answer_rule, qg.question_range_start, qg.question_range_end,
+                 qg.shared_options_json
+          FROM question_groups qg
+          JOIN paper_parts pp ON pp.id = qg.part_id
+          WHERE pp.paper_id = ?1
+            AND pp.module = 'listening'
+          ORDER BY pp.sort_order ASC, qg.group_no ASC
+        `,
       )
-      .bind(testId)
-      .all<OptionRow>(),
+      .bind(paper.id)
+      .all<GroupRow>(),
     db
       .prepare(
-        `SELECT t.table_ref, p.part_title, t.question_numbers_json, t.text_content, t.raw_html, t.sort_order
-         FROM ielts_tables t
-         LEFT JOIN ielts_test_parts p ON t.part_id = p.id
-         WHERE t.test_id = ?
-         ORDER BY t.sort_order ASC, t.id ASC`
+        `
+          SELECT q.id, q.group_id, q.question_no, q.stem, q.sub_label, q.answer_text, q.answer_json, q.sort_order
+          FROM questions q
+          JOIN question_groups qg ON qg.id = q.group_id
+          JOIN paper_parts pp ON pp.id = qg.part_id
+          WHERE pp.paper_id = ?1
+            AND pp.module = 'listening'
+          ORDER BY q.question_no ASC, q.sort_order ASC
+        `,
       )
-      .bind(testId)
-      .all<TableRow>(),
-    db
-      .prepare(
-        `SELECT t.table_ref, c.row_index, c.col_index, c.tag, c.text_content, c.cell_html, c.colspan, c.rowspan
-         FROM ielts_table_cells c
-         JOIN ielts_tables t ON c.table_id = t.id
-         WHERE t.test_id = ?
-         ORDER BY t.sort_order ASC, c.row_index ASC, c.col_index ASC`
-      )
-      .bind(testId)
-      .all<CellRow>(),
+      .bind(paper.id)
+      .all<QuestionRow>(),
   ]);
 
-  let questionsResult: { results: QuestionRow[] } = { results: [] };
-  try {
-    questionsResult = await db
-      .prepare(
-        `SELECT q.question_no, q.question_type, q.question_subtype, q.group_ref, q.passage_no,
-                q.subtitle, q.instruction, q.prompt, q.image_urls_json, q.answer, q.table_ref, q.question_meta_json,
-                p.part_title
-         FROM ielts_questions q
-         LEFT JOIN ielts_test_parts p ON q.part_id = p.id
-         WHERE q.test_id = ?
-         ORDER BY q.question_no ASC`
-      )
-      .bind(testId)
-      .all<QuestionRow>();
-  } catch {
-    const legacyQuestions = await db
-      .prepare(
-        `SELECT q.question_no, q.question_type, q.subtitle, q.instruction, q.prompt, q.image_urls_json, q.answer, q.table_ref, p.part_title
-         FROM ielts_questions q
-         LEFT JOIN ielts_test_parts p ON q.part_id = p.id
-         WHERE q.test_id = ?
-         ORDER BY q.question_no ASC`
-      )
-      .bind(testId)
-      .all<{
-        question_no: number;
-        question_type: QuestionType;
-        subtitle: string | null;
-        instruction: string | null;
-        prompt: string | null;
-        image_urls_json: string | null;
-        answer: string | null;
-        table_ref: string | null;
-        part_title: string | null;
-      }>();
-
-    questionsResult = {
-      results: legacyQuestions.results.map((row) => ({
-        question_no: row.question_no,
-        question_type: row.question_type,
-        question_subtype: "",
-        group_ref: null,
-        passage_no: null,
-        subtitle: row.subtitle,
-        instruction: row.instruction,
-        prompt: row.prompt,
-        image_urls_json: row.image_urls_json,
-        answer: row.answer,
-        table_ref: row.table_ref,
-        question_meta_json: "{}",
-        part_title: row.part_title,
-      })),
-    };
-  }
-
-  let passagesResult: { results: PassageRow[] } = { results: [] };
-  let groupsResult: { results: GroupRow[] } = { results: [] };
-
-  try {
-    passagesResult = await db
-      .prepare(
-        `SELECT ps.passage_no, p.part_title, ps.title, ps.text_content, ps.raw_html, ps.sort_order
-         FROM ielts_passages ps
-         LEFT JOIN ielts_test_parts p ON ps.part_id = p.id
-         WHERE ps.test_id = ?
-         ORDER BY ps.sort_order ASC, ps.id ASC`
-      )
-      .bind(testId)
-      .all<PassageRow>();
-  } catch {
-    passagesResult = { results: [] };
-  }
-
-  try {
-    groupsResult = await db
-      .prepare(
-        `SELECT g.group_ref, p.part_title, g.passage_no, g.heading, g.instruction, g.question_type,
-                g.question_subtype, g.question_from, g.question_to, g.shared_prompt, g.option_set_json, g.sort_order
-         FROM ielts_question_groups g
-         LEFT JOIN ielts_test_parts p ON g.part_id = p.id
-         WHERE g.test_id = ?
-         ORDER BY g.sort_order ASC, g.id ASC`
-      )
-      .bind(testId)
-      .all<GroupRow>();
-  } catch {
-    groupsResult = { results: [] };
-  }
-
-  const optionMap = new Map<number, IeltsQuestionOption[]>();
-  for (const row of optionsResult.results) {
-    if (!optionMap.has(row.question_no)) optionMap.set(row.question_no, []);
-    optionMap.get(row.question_no)?.push({
-      label: row.option_label,
-      text: row.option_text,
+  const questionsByGroup = new Map<string, ListeningQuestion[]>();
+  for (const row of questionsResult.results ?? []) {
+    const nextQuestion: ListeningQuestion = {
+      id: row.id,
+      questionNo: row.question_no,
+      stem: row.stem,
+      subLabel: row.sub_label,
+      answerText: row.answer_text,
+      answerJson: row.answer_json,
       sortOrder: row.sort_order,
-    });
+    };
+
+    const current = questionsByGroup.get(row.group_id) ?? [];
+    current.push(nextQuestion);
+    questionsByGroup.set(row.group_id, current);
   }
 
-  const questions: IeltsQuestion[] = questionsResult.results.map((row) => ({
-    number: row.question_no,
-    type: row.question_type,
-    questionSubtype: row.question_subtype ?? "",
-    part: row.part_title ?? "",
-    passageNo: row.passage_no,
-    groupRef: row.group_ref,
-    subtitle: row.subtitle ?? "",
-    instruction: row.instruction ?? "",
-    prompt: row.prompt ?? "",
-    imageUrls: parseJsonStringArray(row.image_urls_json),
-    answer: row.answer ?? "",
-    tableRef: row.table_ref,
-    questionMeta: parseJsonObject(row.question_meta_json),
-    options: optionMap.get(row.question_no) ?? [],
-  }));
+  const groupsByPart = new Map<string, ListeningQuestionGroup[]>();
+  for (const row of groupsResult.results ?? []) {
+    const nextGroup: ListeningQuestionGroup = {
+      id: row.id,
+      groupNo: row.group_no,
+      title: row.title,
+      instructionHtml: row.instruction_html,
+      contentHtml: row.content_html,
+      questionType: row.question_type,
+      answerRule: row.answer_rule,
+      questionRangeStart: row.question_range_start,
+      questionRangeEnd: row.question_range_end,
+      sharedOptions: parseSharedOptions(row.shared_options_json, row.question_type),
+      questions: (questionsByGroup.get(row.id) ?? []).sort((a, b) => a.sortOrder - b.sortOrder),
+    };
 
-  const cellsByTable = new Map<string, IeltsTableCell[]>();
-  for (const row of cellsResult.results) {
-    if (!cellsByTable.has(row.table_ref)) cellsByTable.set(row.table_ref, []);
-    cellsByTable.get(row.table_ref)?.push({
-      rowIndex: row.row_index,
-      colIndex: row.col_index,
-      tag: row.tag,
-      text: row.text_content ?? "",
-      html: row.cell_html ?? "",
-      colspan: row.colspan,
-      rowspan: row.rowspan,
-    });
+    const current = groupsByPart.get(row.part_id) ?? [];
+    current.push(nextGroup);
+    groupsByPart.set(row.part_id, current);
   }
 
-  const tables: IeltsTable[] = tablesResult.results.map((row) => ({
-    id: row.table_ref,
-    part: row.part_title ?? "",
-    questionNumbers: parseJsonArray(row.question_numbers_json),
-    text: row.text_content ?? "",
-    rawHtml: row.raw_html ?? "",
-    rows: groupTableRows(cellsByTable.get(row.table_ref) ?? []),
-  }));
-
-  const passages: IeltsPassage[] = passagesResult.results.map((row) => ({
-    id: `passage_${row.passage_no}`,
-    passageNo: row.passage_no,
-    part: row.part_title ?? "",
-    title: row.title ?? "",
-    text: row.text_content ?? "",
-    rawHtml: row.raw_html ?? "",
+  const parts: ListeningPart[] = (partsResult.results ?? []).map((row: PartRow) => ({
+    id: row.id,
+    partNo: row.part_no,
+    title: row.title,
+    instructionHtml: row.instruction_html,
+    contentHtml: row.content_html,
+    audioUrl: row.audio_url,
     sortOrder: row.sort_order,
-  }));
-
-  const groups: IeltsQuestionGroup[] = groupsResult.results.map((row) => ({
-    id: row.group_ref,
-    part: row.part_title ?? "",
-    passageNo: row.passage_no,
-    heading: row.heading ?? "",
-    instruction: row.instruction ?? "",
-    questionType: row.question_type,
-    questionSubtype: row.question_subtype ?? "",
-    questionFrom: row.question_from,
-    questionTo: row.question_to,
-    sharedPrompt: row.shared_prompt ?? "",
-    options: parseOptionSetJson(row.option_set_json),
-    sortOrder: row.sort_order,
-  }));
-
-  const parts: IeltsPart[] = partsResult.results.map((row) => ({
-    part: row.part_title,
-    questions: questions.filter((q) => q.part === row.part_title).map((q) => q.number),
-    tables: tables.filter((t) => t.part === row.part_title).map((t) => t.id),
+    groups: (groupsByPart.get(row.id) ?? []).sort((a, b) => a.groupNo - b.groupNo),
   }));
 
   return {
-    id: test.id,
-    sourceUrl: test.source_url,
-    sourcePageId: test.source_page_id,
-    title: test.title,
-    scrapedAt: test.scraped_at,
-    series: test.series ?? "",
-    bookNo: test.book_no,
-    testNo: test.test_no,
-    module: test.module ?? "",
-    testCode: test.test_code ?? "",
-    audioUrls: audioResult.results.map((r) => r.url),
+    id: paper.id,
+    title: paper.title,
+    book: paper.book,
+    testNo: paper.test_no,
+    module: "listening" as const,
     parts,
-    questions,
-    tables,
-    passages,
-    groups,
-  };
-}
-
-export async function getAvailableIeltsTestNos(
-  db: D1Database,
-  filters: Omit<FilterInput, "testNo"> = {}
-): Promise<number[]> {
-  const conditions: string[] = ["test_no IS NOT NULL"];
-  const bindValues: Array<string | number> = [];
-
-  if (filters.series) {
-    conditions.push("series = ?");
-    bindValues.push(filters.series);
-  }
-  if (typeof filters.bookNo === "number") {
-    conditions.push("book_no = ?");
-    bindValues.push(filters.bookNo);
-  }
-  if (filters.module) {
-    conditions.push("module = ?");
-    bindValues.push(filters.module);
-  }
-
-  const whereClause = `WHERE ${conditions.join(" AND ")}`;
-  const result = await db
-    .prepare(
-      `SELECT DISTINCT test_no
-       FROM ielts_tests
-       ${whereClause}
-       ORDER BY test_no ASC`
-    )
-    .bind(...bindValues)
-    .all<AvailableTestNoRow>();
-
-  return result.results
-    .map((row) => row.test_no)
-    .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  } satisfies ListeningPracticePaper;
 }

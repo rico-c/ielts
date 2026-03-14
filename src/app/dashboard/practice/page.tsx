@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import ListeningPracticePanel from "@/components/ListeningPracticePanel";
+import type { ListeningPracticePaper } from "@/lib/ielts-db";
 
 const BOOK_NUMBERS = Array.from({ length: 16 }, (_, index) => index + 5);
 const SERIES = "Cambridge IELTS";
@@ -12,6 +14,7 @@ const MODULES = [
 ] as const;
 type ModuleId = (typeof MODULES)[number]["id"];
 type TestSelectorState = "idle" | "loading" | "success" | "error";
+type PracticeState = "idle" | "loading" | "success" | "error";
 
 export default function DashboardPracticePage() {
   const [activeBookNo, setActiveBookNo] = useState(20);
@@ -19,6 +22,8 @@ export default function DashboardPracticePage() {
   const [activeTestNo, setActiveTestNo] = useState<number | undefined>(undefined);
   const [availableTestNos, setAvailableTestNos] = useState<number[]>([]);
   const [testSelectorState, setTestSelectorState] = useState<TestSelectorState>("idle");
+  const [practiceState, setPracticeState] = useState<PracticeState>("idle");
+  const [practicePaper, setPracticePaper] = useState<ListeningPracticePaper | null>(null);
 
   const optionsApiUrl = useMemo(() => {
     const params = new URLSearchParams({
@@ -28,6 +33,18 @@ export default function DashboardPracticePage() {
     });
     return `/api/ielts/tests/options?${params.toString()}`;
   }, [activeBookNo, activeModule]);
+
+  const practiceApiUrl = useMemo(() => {
+    if (typeof activeTestNo !== "number") return "";
+
+    const params = new URLSearchParams({
+      series: SERIES,
+      bookNo: String(activeBookNo),
+      module: activeModule,
+      testNo: String(activeTestNo),
+    });
+    return `/api/ielts/tests/detail?${params.toString()}`;
+  }, [activeBookNo, activeModule, activeTestNo]);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,7 +69,7 @@ export default function DashboardPracticePage() {
         setAvailableTestNos(nextTestNos);
         setActiveTestNo((current) => {
           if (typeof current === "number" && nextTestNos.includes(current)) return current;
-          return nextTestNos.at(-1);
+          return nextTestNos[0];
         });
         setTestSelectorState("success");
       } catch {
@@ -68,6 +85,43 @@ export default function DashboardPracticePage() {
       cancelled = true;
     };
   }, [optionsApiUrl]);
+
+  useEffect(() => {
+    if (!practiceApiUrl) {
+      setPracticeState("idle");
+      setPracticePaper(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadPracticePaper() {
+      setPracticeState("loading");
+
+      try {
+        const response = await fetch(practiceApiUrl, { cache: "no-store" });
+        const json = (await response.json()) as { paper?: ListeningPracticePaper; error?: string };
+
+        if (!response.ok || !json.paper) {
+          throw new Error(json.error || "Failed to load practice paper.");
+        }
+
+        if (cancelled) return;
+
+        setPracticePaper(json.paper);
+        setPracticeState("success");
+      } catch {
+        if (cancelled) return;
+        setPracticePaper(null);
+        setPracticeState("error");
+      }
+    }
+
+    loadPracticePaper();
+    return () => {
+      cancelled = true;
+    };
+  }, [practiceApiUrl]);
 
   return (
     <section className="space-y-6">
@@ -191,6 +245,20 @@ export default function DashboardPracticePage() {
           </div>
         </div>
       </div>
+
+      {practiceState === "loading" ? (
+        <div className="rounded-[2rem] border border-[var(--line)] bg-white px-6 py-10 text-center text-sm text-slate-500 shadow-sm">
+          正在加载题目内容...
+        </div>
+      ) : null}
+
+      {practiceState === "error" ? (
+        <div className="rounded-[2rem] border border-rose-200 bg-rose-50 px-6 py-10 text-center text-sm text-rose-700 shadow-sm">
+          题目加载失败，请稍后重试。
+        </div>
+      ) : null}
+
+      {practiceState === "success" && practicePaper ? <ListeningPracticePanel paper={practicePaper} /> : null}
     </section>
   );
 }
