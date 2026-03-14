@@ -7,9 +7,9 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const menuItems = [
-  { href: "/dashboard", label: "Overview", short: "OV" },
-  { href: "/dashboard/practice", label: "Practice", short: "PR" },
-  { href: "/dashboard/voice", label: "Voice Lab", short: "VL" },
+  { href: "/dashboard", label: "概览", short: "OV" },
+  { href: "/dashboard/practice", label: "剑雅真题", short: "PR" },
+  { href: "/dashboard/voice", label: "模拟口语考试", short: "VL" },
 ];
 
 export default function DashboardLayout({
