@@ -1,6 +1,5 @@
 import Link from "next/link";
 import ElevenLabsVoiceAssistant from "@/components/ElevenLabsVoiceAssistant";
-import IeltsTestRenderer from "@/components/IeltsTestRenderer";
 
 const quickActions = [
   {
@@ -105,7 +104,6 @@ export default function DashboardPage() {
             继续把题库预览保留在 dashboard 首页，便于后续扩成完整的个人练习工作台。
           </p>
         </div>
-        <IeltsTestRenderer />
       </section>
     </div>
   );

@@ -1,0 +1,79 @@
+{
+  "0": {
+      "id": "1223",
+      "mobile": "13691214473",
+      "title": "Part 1",
+      "audio": "",
+      "desc": "<p><span style=\"text-wrap-mode: wrap;\">You should spend about 20 minutes on this task.<\/span><\/p>",
+      "content": "<p><br\/><\/p><p><strong><em>The charts below give information about a public library in a town called Little Chalfont.<\/em><\/strong><\/p><p><strong><em><br\/><\/em><\/strong><\/p><p><strong><em>Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<\/em><\/strong><\/p><p><br\/><\/p><p>Write at least 150 words.<\/p><p><br\/><\/p><p><img src=\"https:\/\/resource.gximg.cn\/d11d19_mcii0gcn10.jpg\" style=\"width: 547.222px; height: 527.222px;\"\/><\/p><p><br\/><\/p>",
+      "classify": "3",
+      "paper_id": "157",
+      "isvip": "2",
+      "is_submit": "1",
+      "value": "",
+      "pages": [
+          {
+              "title": "",
+              "desc": "<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<\/p>",
+              "content": "<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<\/p>",
+              "type": "1",
+              "real_type": "1",
+              "sections": [
+                  {
+                      "id": "3900",
+                      "title": "",
+                      "desc": "",
+                      "type": "1",
+                      "real_type": "1",
+                      "classify": "3",
+                      "res": "",
+                      "res_info": [],
+                      "chapter_id": "1223",
+                      "paper_id": "157",
+                      "questions": [],
+                      "options": []
+                  }
+              ]
+          }
+      ]
+  },
+  "1": {
+      "id": "1224",
+      "mobile": "13691214473",
+      "title": "Part 2",
+      "audio": "",
+      "desc": "<p><span style=\"text-wrap-mode: wrap;\">You should spend about 40 minutes on this task.<\/span><\/p>",
+      "content": "<p><br\/><\/p><p><strong><em>Some people have decided to reduce the number of times they fly everyyear or to stop flying altogether.<\/em><\/strong><\/p><p><strong><em>Do you think the environmental benefits of this development outweigh the disadvantages for individuals and businesses?<\/em><\/strong><\/p><p><strong><em><br\/><\/em><\/strong><\/p><p>Give reasons for your answer and include any relevant examples from your own knowledge or experience.<\/p><p><br\/><\/p><p>Write at least 250 words<\/p><p><br\/><\/p>",
+      "classify": "3",
+      "paper_id": "157",
+      "isvip": "2",
+      "is_submit": "1",
+      "value": "",
+      "pages": [
+          {
+              "title": " ",
+              "desc": "<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<\/p>",
+              "content": "<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<\/p>",
+              "type": "1",
+              "real_type": "1",
+              "sections": [
+                  {
+                      "id": "3899",
+                      "title": "",
+                      "desc": "",
+                      "type": "1",
+                      "real_type": "1",
+                      "classify": "3",
+                      "res": "",
+                      "res_info": [],
+                      "chapter_id": "1224",
+                      "paper_id": "157",
+                      "questions": [],
+                      "options": []
+                  }
+              ]
+          }
+      ]
+  },
+  "p_id": "17"
+}

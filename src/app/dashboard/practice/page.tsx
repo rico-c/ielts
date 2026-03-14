@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import IeltsTestRenderer from "@/components/IeltsTestRenderer";
 
 const BOOK_NUMBERS = Array.from({ length: 16 }, (_, index) => index + 5);
 const SERIES = "Cambridge IELTS";
@@ -192,13 +191,6 @@ export default function DashboardPracticePage() {
           </div>
         </div>
       </div>
-
-      <IeltsTestRenderer
-        series={SERIES}
-        bookNo={activeBookNo}
-        testNo={activeTestNo}
-        module={activeModule}
-      />
     </section>
   );
 }

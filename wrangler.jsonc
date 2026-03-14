@@ -20,7 +20,7 @@
 		{
 			"binding": "DB",
 			"database_name": "ielts",
-			"database_id": "d5ef712f-10ee-4808-aa34-45d78ee68b86",
+			"database_id": "8dd12c19-28aa-489d-9e46-b167095ef454",
 			"migrations_dir": "migrations",
 			"remote": true
 		}

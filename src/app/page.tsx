@@ -3,7 +3,6 @@ import { SignInButton, UserButton } from "@clerk/nextjs";
 import Image from "next/image";
 import Link from "next/link";
 import ElevenLabsVoiceAssistant from "@/components/ElevenLabsVoiceAssistant";
-import IeltsTestRenderer from "@/components/IeltsTestRenderer";
 
 const featureCards = [
   {
@@ -169,7 +168,7 @@ export default async function Home() {
                 {userId ? (
                   <Link
                     href="/dashboard"
-                    className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-8 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-blue-500/30"
+                    className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-8 py-4 text-lg font-semibold !text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-blue-500/30"
                   >
                     进入备考平台
                   </Link>
@@ -341,10 +340,6 @@ export default async function Home() {
               >
                 {userId ? "去 Dashboard 继续练习" : "登录后保存训练记录"}
               </Link>
-            </div>
-
-            <div className="rounded-[2rem] border border-gray-100 bg-white p-2 shadow-xl shadow-gray-200/40 sm:p-4">
-              <IeltsTestRenderer />
             </div>
           </section>
         </div>
