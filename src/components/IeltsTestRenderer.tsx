@@ -122,6 +122,14 @@ export default function IeltsTestRenderer(props: Props) {
         const response = await fetch(apiUrl, { cache: "no-store" });
         const json = (await response.json()) as { data?: IeltsTestData; error?: string };
 
+        if (response.status === 404) {
+          if (!cancelled) {
+            setData(null);
+            setState("success");
+          }
+          return;
+        }
+
         if (!response.ok) {
           throw new Error(json.error || "Failed to load IELTS test data.");
         }
@@ -153,7 +161,18 @@ export default function IeltsTestRenderer(props: Props) {
   }
 
   if (!data) {
-    return <div className="rounded-[1.5rem] border border-[var(--line)] bg-white/70 p-5">暂无题目数据。</div>;
+    return (
+      <div className="rounded-[1.75rem] border border-dashed border-[var(--line)] bg-white/70 p-8 text-center">
+        <p className="text-lg font-semibold text-slate-900">当前筛选下还没有题目数据</p>
+        <p className="mt-2 text-sm leading-6 text-slate-500">
+          {props.series || "Cambridge IELTS"}
+          {" · "}Book {props.bookNo ?? "-"}
+          {" · "}
+          {props.module || "-"}
+          {typeof props.testNo === "number" ? ` · Test ${props.testNo}` : ""}
+        </p>
+      </div>
+    );
   }
 
   const tableMap = new Map(data.tables.map((t) => [t.id, t]));

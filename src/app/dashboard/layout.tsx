@@ -1,16 +1,61 @@
 "use client";
 
 import { UserButton } from "@clerk/nextjs";
+import {
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  LayoutDashboard,
+  Mic,
+  X,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import type { LucideIcon } from "lucide-react";
 
 const menuItems = [
-  { href: "/dashboard", label: "概览", short: "OV" },
-  { href: "/dashboard/practice", label: "剑雅真题", short: "PR" },
-  { href: "/dashboard/voice", label: "模拟口语考试", short: "VL" },
+  { href: "/dashboard", label: "概览", icon: LayoutDashboard },
+  { href: "/dashboard/practice", label: "剑雅真题", icon: BookOpen },
+  { href: "/dashboard/voice", label: "模拟口语考试", icon: Mic },
 ];
+
+function SidebarIcon({
+  icon: Icon,
+  active,
+}: {
+  icon: LucideIcon;
+  active: boolean;
+}) {
+  return (
+    <span
+      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+        active ? "bg-blue-600 text-white" : "bg-slate-100/80 text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600"
+      }`}
+    >
+      <Icon className="h-[18px] w-[18px]" strokeWidth={2.2} />
+    </span>
+  );
+}
+
+function SidebarToggleIcon({ collapsed }: { collapsed: boolean }) {
+  const Icon = collapsed ? ChevronRight : ChevronLeft;
+
+  return <Icon className="h-4 w-4" strokeWidth={2.4} />;
+}
+
+function MobileCloseIcon() {
+  return <X className="h-4 w-4" strokeWidth={2.2} />;
+}
+
+function MobileMenuText() {
+  return <span>关闭</span>;
+}
+
+function CollapseLabel({ collapsed }: { collapsed: boolean }) {
+  return <span>{collapsed ? "" : "收起"}</span>;
+}
 
 export default function DashboardLayout({
   children,
@@ -45,7 +90,7 @@ export default function DashboardLayout({
       ) : null}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-white/60 bg-white/78 backdrop-blur-xl transition-transform duration-300 md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-white/30 bg-transparent backdrop-blur-xl transition-transform duration-300 md:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         } ${collapsed ? "md:w-[88px]" : "md:w-72"}`}
       >
@@ -60,16 +105,18 @@ export default function DashboardLayout({
             <button
               type="button"
               onClick={() => setMobileOpen(false)}
-              className="rounded-lg p-2 text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 md:hidden"
+              className="inline-flex items-center gap-2 rounded-lg p-2 text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 md:hidden"
             >
-              关闭
+              <MobileCloseIcon />
+              <MobileMenuText />
             </button>
             <button
               type="button"
               onClick={() => setCollapsed((value) => !value)}
-              className="hidden rounded-lg p-2 text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 md:block"
+              className="hidden items-center gap-2 rounded-lg p-2 text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 md:inline-flex"
             >
-              {collapsed ? "展开" : "收起"}
+              <SidebarToggleIcon collapsed={collapsed} />
+              <CollapseLabel collapsed={collapsed} />
             </button>
           </div>
         </div>
@@ -87,13 +134,7 @@ export default function DashboardLayout({
                 } ${active ? "bg-slate-100 text-slate-900" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}
                 title={collapsed ? item.label : undefined}
               >
-                <span
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-semibold ${
-                    active ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600"
-                  }`}
-                >
-                  {item.short}
-                </span>
+                <SidebarIcon icon={item.icon} active={active} />
                 {collapsed ? null : <span className="text-sm font-medium">{item.label}</span>}
               </Link>
             );

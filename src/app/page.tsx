@@ -181,12 +181,6 @@ export default async function Home() {
                     免费开始练习
                   </Link>
                 )}
-                <a
-                  href="#questions"
-                  className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-8 py-4 text-lg font-semibold text-gray-700 transition-colors hover:border-blue-200 hover:text-blue-600"
-                >
-                  查看最新题目
-                </a>
               </div>
 
               <div className="mt-8 flex flex-wrap items-center gap-6 text-sm text-gray-500">

@@ -106,6 +106,10 @@ interface FilterInput {
   module?: string;
 }
 
+interface AvailableTestNoRow {
+  test_no: number | null;
+}
+
 function parseJsonArray(value: string): number[] {
   try {
     const data = JSON.parse(value);
@@ -451,4 +455,40 @@ export async function getLatestIeltsTestData(
     passages,
     groups,
   };
+}
+
+export async function getAvailableIeltsTestNos(
+  db: D1Database,
+  filters: Omit<FilterInput, "testNo"> = {}
+): Promise<number[]> {
+  const conditions: string[] = ["test_no IS NOT NULL"];
+  const bindValues: Array<string | number> = [];
+
+  if (filters.series) {
+    conditions.push("series = ?");
+    bindValues.push(filters.series);
+  }
+  if (typeof filters.bookNo === "number") {
+    conditions.push("book_no = ?");
+    bindValues.push(filters.bookNo);
+  }
+  if (filters.module) {
+    conditions.push("module = ?");
+    bindValues.push(filters.module);
+  }
+
+  const whereClause = `WHERE ${conditions.join(" AND ")}`;
+  const result = await db
+    .prepare(
+      `SELECT DISTINCT test_no
+       FROM ielts_tests
+       ${whereClause}
+       ORDER BY test_no ASC`
+    )
+    .bind(...bindValues)
+    .all<AvailableTestNoRow>();
+
+  return result.results
+    .map((row) => row.test_no)
+    .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
 }
