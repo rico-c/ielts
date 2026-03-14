@@ -15,7 +15,7 @@ const bodyFont = Manrope({
 });
 
 export const metadata: Metadata = {
-	title: "IELTS Env.d.ts",
+	title: "优秀雅思",
 	description: "雅思全科备考落地页，聚合口语陪练、最新题库预览与真实考试节奏训练。",
 };
 
