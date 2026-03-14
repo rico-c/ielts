@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import ListeningAudioPlayer from "@/components/ListeningAudioPlayer";
 import type { IeltsQuestion, IeltsTable, IeltsTestData } from "@/types/ielts";
 
 type LoadState = "idle" | "loading" | "success" | "error";
@@ -179,24 +180,19 @@ export default function IeltsTestRenderer(props: Props) {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8">
-      <section className="rounded-[1.75rem] border border-[var(--line)] bg-white/68 p-6 shadow-[0_16px_40px_rgba(58,46,34,0.06)]">
-        <h1 className="text-2xl font-semibold text-slate-900">{data.title}</h1>
-        <p className="mt-2 text-sm text-slate-500">
-          {data.series} Book {data.bookNo ?? "-"} Test {data.testNo ?? "-"} ({data.module || "-"})
-          {data.testCode ? ` · ${data.testCode}` : ""}
-        </p>
-        <p className="mt-1 text-xs text-slate-500">来源: {data.sourceUrl}</p>
-
+      {/* <section className="rounded-[1.75rem] border border-[var(--line)] bg-white/68 p-6 shadow-[0_16px_40px_rgba(58,46,34,0.06)]"> */}
         {data.audioUrls.length > 0 ? (
-          <div className="mt-4 grid gap-3">
-            {data.audioUrls.map((url) => (
-              <audio key={url} controls className="w-full">
-                <source src={url} />
-              </audio>
+          <div className="mt-0 grid gap-3">
+            {data.audioUrls.map((url, index) => (
+              <ListeningAudioPlayer
+                key={url}
+                src={url}
+                title={data.audioUrls.length > 1 ? `Audio ${index + 1}` : "Listening Audio"}
+              />
             ))}
           </div>
         ) : null}
-      </section>
+      {/* </section> */}
 
       {data.parts.map((part) => {
         const partQuestions = data.questions.filter((q) => q.part === part.part);
