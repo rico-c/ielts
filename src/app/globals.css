@@ -1,15 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6efe4;
-  --foreground: #1f2937;
-  --surface: rgba(255, 251, 245, 0.78);
-  --surface-strong: #fffaf2;
-  --line: rgba(107, 114, 128, 0.2);
-  --accent: #c26b43;
-  --accent-deep: #9f4d29;
-  --accent-soft: #f4c8ab;
-  --ink-soft: #5b6472;
+  --background: #f8fafc;
+  --foreground: #111827;
+  --surface: rgba(255, 255, 255, 0.92);
+  --surface-strong: #ffffff;
+  --line: rgba(148, 163, 184, 0.24);
+  --accent: #2563eb;
+  --accent-deep: #1d4ed8;
+  --accent-soft: #dbeafe;
+  --ink-soft: #6b7280;
 }
 
 @theme inline {
@@ -29,9 +29,9 @@ html {
 body {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(194, 107, 67, 0.18), transparent 24%),
-    radial-gradient(circle at 85% 18%, rgba(109, 140, 132, 0.18), transparent 18%),
-    linear-gradient(180deg, #fbf6ed 0%, #f2eadf 48%, #efe6da 100%);
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.12), transparent 24%),
+    radial-gradient(circle at 85% 18%, rgba(99, 102, 241, 0.1), transparent 18%),
+    linear-gradient(180deg, #f8fafc 0%, #eef4ff 48%, #f8fbff 100%);
   color: var(--foreground);
   font-family: var(--font-body), sans-serif;
 }
@@ -44,6 +44,11 @@ body {
 .font-display {
   font-family: var(--font-display), serif;
 }
+
+.font-song {
+  font-family: "SimSun", "Songti SC", "STSong", "NSimSun", serif;
+}
+
 
 .ielts-shell {
   position: relative;
@@ -66,18 +71,18 @@ body {
 .glass-panel {
   background: var(--surface);
   border: 1px solid var(--line);
-  box-shadow: 0 24px 80px rgba(58, 46, 34, 0.08);
-  backdrop-filter: blur(22px);
+  box-shadow: 0 20px 60px rgba(148, 163, 184, 0.18);
+  backdrop-filter: blur(18px);
 }
 
 .section-kicker {
-  border: 1px solid rgba(194, 107, 67, 0.24);
-  background: rgba(255, 248, 241, 0.88);
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  background: rgba(239, 246, 255, 0.92);
   color: var(--accent-deep);
 }
 
 .accent-gradient {
-  background: linear-gradient(135deg, var(--accent) 0%, #e0a07d 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, #4f8df7 100%);
 }
 
 .text-ink-soft {
