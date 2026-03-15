@@ -88,3 +88,21 @@ body {
 .text-ink-soft {
   color: var(--ink-soft);
 }
+
+.ielts-richtext table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.ielts-richtext th,
+.ielts-richtext td {
+  border: 1px solid rgba(148, 163, 184, 0.8) !important;
+  padding: 0.5rem 0.75rem;
+  vertical-align: top;
+}
+
+.ielts-richtext th {
+  background: rgba(248, 250, 252, 0.9);
+  font-weight: 700;
+}
