@@ -298,65 +298,71 @@ function renderHtmlNode(
   return createElement(tagName, props, ...children);
 }
 
-const HtmlBlock = memo(function HtmlBlock({
-  html,
-  questionsByNo = null,
-  answers,
-  submitted,
-  onAnswerChange,
-}: {
-  html: string | null;
-  questionsByNo?: Map<number, ListeningQuestion> | null;
-  answers: Record<string, AnswerValue>;
-  submitted: boolean;
-  onAnswerChange: (questionId: string, value: string) => void;
-}) {
-  const [isMounted, setIsMounted] = useState(false);
+const HtmlBlock = memo(
+  function HtmlBlock({
+    html,
+    questionsByNo = null,
+    answers,
+    submitted,
+    onAnswerChange,
+  }: {
+    html: string | null;
+    questionsByNo?: Map<number, ListeningQuestion> | null;
+    answers: Record<string, AnswerValue>;
+    submitted: boolean;
+    onAnswerChange: (questionId: string, value: string) => void;
+  }) {
+    const [isMounted, setIsMounted] = useState(false);
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+    useEffect(() => {
+      setIsMounted(true);
+    }, []);
 
-  if (!html) return null;
+    if (!html) return null;
 
-  if (!isMounted || !questionsByNo) {
-    return (
-      <div
-        className="ielts-richtext prose prose-slate max-w-none text-sm"
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
+    if (!isMounted || !questionsByNo) {
+      return (
+        <div
+          className="ielts-richtext prose prose-slate max-w-none text-sm"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      );
+    }
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const children = Array.from(doc.body.childNodes).map((node, index) =>
+      renderHtmlNode(
+        node,
+        questionsByNo,
+        answers,
+        submitted,
+        onAnswerChange,
+        `node-${index}`,
+      ),
     );
-  }
 
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, "text/html");
-  const children = Array.from(doc.body.childNodes).map((node, index) =>
-    renderHtmlNode(
-      node,
-      questionsByNo,
-      answers,
-      submitted,
-      onAnswerChange,
-      `node-${index}`,
-    ),
-  );
+    return (
+      <div className="ielts-richtext prose prose-slate max-w-none text-sm">
+        {children}
+      </div>
+    );
+  },
+  (prevProps, nextProps) => {
+    if (prevProps.html !== nextProps.html) return false;
+    if (prevProps.questionsByNo !== nextProps.questionsByNo) return false;
+    if (prevProps.submitted !== nextProps.submitted) return false;
 
-  return (
-    <div className="ielts-richtext prose prose-slate max-w-none text-sm">
-      {children}
-    </div>
-  );
-}, (prevProps, nextProps) => {
-  if (prevProps.html !== nextProps.html) return false;
-  if (prevProps.questionsByNo !== nextProps.questionsByNo) return false;
-  if (prevProps.submitted !== nextProps.submitted) return false;
+    if (!prevProps.questionsByNo && !nextProps.questionsByNo) {
+      return true;
+    }
 
-  if (!prevProps.questionsByNo && !nextProps.questionsByNo) {
-    return true;
-  }
-
-  return prevProps.answers === nextProps.answers && prevProps.onAnswerChange === nextProps.onAnswerChange;
-});
+    return (
+      prevProps.answers === nextProps.answers &&
+      prevProps.onAnswerChange === nextProps.onAnswerChange
+    );
+  },
+);
 
 export default function ListeningPracticePanel({
   paper,
@@ -365,13 +371,17 @@ export default function ListeningPracticePanel({
 }) {
   const moduleLabel =
     paper.module === "reading"
-      ? "Reading Practice"
+      ? "Reading"
       : paper.module === "writing"
-        ? "Writing Practice"
-        : "Listening Practice";
+        ? "Writing"
+        : "Listening";
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
-  const [activePartId, setActivePartId] = useState(() => paper.parts[0]?.id ?? "");
-  const [submittedParts, setSubmittedParts] = useState<Record<string, boolean>>({});
+  const [activePartId, setActivePartId] = useState(
+    () => paper.parts[0]?.id ?? "",
+  );
+  const [submittedParts, setSubmittedParts] = useState<Record<string, boolean>>(
+    {},
+  );
   const updateAnswer = (questionId: string, value: string) =>
     setAnswers((current) => ({
       ...current,
@@ -387,12 +397,19 @@ export default function ListeningPracticePanel({
     });
 
   const currentPart = useMemo(
-    () => paper.parts.find((part) => part.id === activePartId) ?? paper.parts[0] ?? null,
+    () =>
+      paper.parts.find((part) => part.id === activePartId) ??
+      paper.parts[0] ??
+      null,
     [activePartId, paper],
   );
   const currentIsWriting = paper.module === "writing";
-  const currentSubmitted = currentPart ? Boolean(submittedParts[currentPart.id]) : false;
-  const currentWritingAnswerKey = currentPart ? `writing:${currentPart.id}` : "";
+  const currentSubmitted = currentPart
+    ? Boolean(submittedParts[currentPart.id])
+    : false;
+  const currentWritingAnswerKey = currentPart
+    ? `writing:${currentPart.id}`
+    : "";
 
   const currentPartQuestions = useMemo(
     () =>
@@ -424,33 +441,32 @@ export default function ListeningPracticePanel({
       <div className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm sm:p-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-700">
-              {moduleLabel}
-            </p>
-            <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-900">
-              {paper.title} · Test {paper.testNo}
+            <h2 className="mb-2 text-2xl font-extrabold tracking-tight text-slate-900">
+              {paper.title} · Test {paper.testNo} · {moduleLabel}
             </h2>
-          </div>
+            {/* <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-700">
+              {moduleLabel}
+            </p> */}
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {paper.parts.map((part) => {
+                const active = part.id === currentPart?.id;
 
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            {paper.parts.map((part) => {
-              const active = part.id === currentPart?.id;
-
-              return (
-                <button
-                  key={part.id}
-                  type="button"
-                  onClick={() => setActivePartId(part.id)}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                    active
-                      ? "bg-slate-900 text-white"
-                      : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
-                  }`}
-                >
-                  Part {part.partNo}
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={part.id}
+                    type="button"
+                    onClick={() => setActivePartId(part.id)}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                      active
+                        ? "bg-slate-900 text-white"
+                        : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                    }`}
+                  >
+                    Part {part.partNo}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -528,45 +544,52 @@ export default function ListeningPracticePanel({
           <div className="space-y-4 px-4 py-5 sm:px-6 sm:py-6">
             {currentIsWriting ? (
               // <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
-                <div className="space-y-3">
-                  <textarea
-                    value={typeof answers[currentWritingAnswerKey] === "string" ? answers[currentWritingAnswerKey] : ""}
-                    onChange={(event) => updateAnswer(currentWritingAnswerKey, event.target.value)}
-                    placeholder="在这里开始写作..."
-                    className="min-h-[420px] w-full rounded-[1.5rem] border border-slate-200 bg-white px-5 py-4 text-sm leading-7 text-slate-700 outline-none transition-colors focus:border-slate-400"
-                  />
-                </div>
+              <div className="space-y-3">
+                <textarea
+                  value={
+                    typeof answers[currentWritingAnswerKey] === "string"
+                      ? answers[currentWritingAnswerKey]
+                      : ""
+                  }
+                  onChange={(event) =>
+                    updateAnswer(currentWritingAnswerKey, event.target.value)
+                  }
+                  placeholder="在这里开始写作..."
+                  className="min-h-[420px] w-full rounded-[1.5rem] border border-slate-200 bg-white px-5 py-4 text-sm leading-7 text-slate-700 outline-none transition-colors focus:border-slate-400"
+                />
+              </div>
+            ) : (
               // </div>
-            ) : currentPart.groups.map((group) => (
-              <article
-                key={group.id}
-                className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-[0_8px_20px_rgba(15,23,42,0.04)]"
-              >
-                {(() => {
-                  const questionsByNo = new Map(
-                    group.questions.map(
-                      (question) => [question.questionNo, question] as const,
-                    ),
-                  );
-                  const inlineFillBlank =
-                    group.questionType === "fill_blank" &&
-                    Boolean(group.contentHtml || group.instructionHtml);
-                  const isDragMatching =
-                    group.questionType === "matching" ||
-                    group.questionType === "map_labeling";
-                  const groupedMultipleChoice =
-                    group.questionType === "multiple_choice" &&
-                    group.questions.length > 1 &&
-                    new Set(
-                      group.questions.map((question) =>
-                        stripHtml(question.stem || group.title),
+              currentPart.groups.map((group) => (
+                <article
+                  key={group.id}
+                  className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-[0_8px_20px_rgba(15,23,42,0.04)]"
+                >
+                  {(() => {
+                    const questionsByNo = new Map(
+                      group.questions.map(
+                        (question) => [question.questionNo, question] as const,
                       ),
-                    ).size === 1;
+                    );
+                    const inlineFillBlank =
+                      group.questionType === "fill_blank" &&
+                      Boolean(group.contentHtml || group.instructionHtml);
+                    const isDragMatching =
+                      group.questionType === "matching" ||
+                      group.questionType === "map_labeling";
+                    const groupedMultipleChoice =
+                      group.questionType === "multiple_choice" &&
+                      group.questions.length > 1 &&
+                      new Set(
+                        group.questions.map((question) =>
+                          stripHtml(question.stem || group.title),
+                        ),
+                      ).size === 1;
 
-                  return (
-                    <>
-                      <div className="space-y-3">
-                        {/* <div className="flex flex-wrap items-start justify-between gap-3">
+                    return (
+                      <>
+                        <div className="space-y-3">
+                          {/* <div className="flex flex-wrap items-start justify-between gap-3">
                           {group.answerRule ? (
                             <div className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">
                               {group.answerRule}
@@ -574,21 +597,9 @@ export default function ListeningPracticePanel({
                           ) : null}
                         </div> */}
 
-                        {group.instructionHtml ? (
-                          <HtmlBlock
-                            html={group.instructionHtml}
-                            questionsByNo={
-                              inlineFillBlank ? questionsByNo : null
-                            }
-                            answers={answers}
-                            submitted={currentSubmitted}
-                            onAnswerChange={updateAnswer}
-                          />
-                        ) : null}
-                        {group.contentHtml && (NeedHideHTML !== group.contentHtml) ? (
-                          <div className="">
+                          {group.instructionHtml ? (
                             <HtmlBlock
-                              html={group.contentHtml}
+                              html={group.instructionHtml}
                               questionsByNo={
                                 inlineFillBlank ? questionsByNo : null
                               }
@@ -596,10 +607,23 @@ export default function ListeningPracticePanel({
                               submitted={currentSubmitted}
                               onAnswerChange={updateAnswer}
                             />
-                          </div>
-                        ) : null}
+                          ) : null}
+                          {group.contentHtml &&
+                          NeedHideHTML !== group.contentHtml ? (
+                            <div className="">
+                              <HtmlBlock
+                                html={group.contentHtml}
+                                questionsByNo={
+                                  inlineFillBlank ? questionsByNo : null
+                                }
+                                answers={answers}
+                                submitted={currentSubmitted}
+                                onAnswerChange={updateAnswer}
+                              />
+                            </div>
+                          ) : null}
 
-                        {/* {group.sharedOptions.length > 0 && group.questionType !== "fill_blank" ? (
+                          {/* {group.sharedOptions.length > 0 && group.questionType !== "fill_blank" ? (
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Options</p>
                       <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -612,133 +636,166 @@ export default function ListeningPracticePanel({
                       </div>
                     </div>
                   ) : null} */}
-                      </div>
+                        </div>
 
-                      {!inlineFillBlank ? (
-                        <div className="mt-5 space-y-3">
-                          {isDragMatching
-                            ? (
-                                <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
-                                  <div className="space-y-3">
-                                    {group.questions.map((question) => {
-                                      const answer = answers[question.id];
-                                      const selectedLabel = typeof answer === "string" ? answer : "";
-                                      const selectedOption = group.sharedOptions.find(
-                                        (option) => getOptionLabel(option) === selectedLabel,
+                        {!inlineFillBlank ? (
+                          <div className="mt-5 space-y-3">
+                            {isDragMatching ? (
+                              <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
+                                <div className="space-y-3">
+                                  {group.questions.map((question) => {
+                                    const answer = answers[question.id];
+                                    const selectedLabel =
+                                      typeof answer === "string" ? answer : "";
+                                    const selectedOption =
+                                      group.sharedOptions.find(
+                                        (option) =>
+                                          getOptionLabel(option) ===
+                                          selectedLabel,
                                       );
-                                      const correct = currentSubmitted
-                                        ? isCorrectAnswer(
-                                            answer,
-                                            question.answerText,
-                                            question.answerJson,
-                                          )
-                                        : null;
-                                      const acceptedAnswers = parseAnswerValues(
-                                        question.answerText,
-                                        question.answerJson,
-                                      );
+                                    const correct = currentSubmitted
+                                      ? isCorrectAnswer(
+                                          answer,
+                                          question.answerText,
+                                          question.answerJson,
+                                        )
+                                      : null;
+                                    const acceptedAnswers = parseAnswerValues(
+                                      question.answerText,
+                                      question.answerJson,
+                                    );
 
-                                      return (
-                                        <div
-                                          key={question.id}
-                                          className={`rounded-2xl border px-4 py-4 ${
-                                            currentSubmitted
-                                              ? correct
-                                                ? "border-emerald-200 bg-emerald-50/70"
-                                                : "border-rose-200 bg-rose-50/70"
-                                              : "border-slate-200 bg-slate-50/60"
-                                          }`}
-                                        >
-                                          <div className="flex flex-row flex-wrap items-start justify-between gap-3">
-                                            <div className="space-y-3 flex items-center gap-5">
-                                              <div className="text-sm leading-6 text-slate-700">
-                                                {stripHtml(question.stem) || stripHtml(group.title)}
-                                              </div>
-                                              <div
-                                                onDragOver={(event) => event.preventDefault()}
-                                                onDrop={(event) => {
-                                                  event.preventDefault();
-                                                  const droppedLabel = event.dataTransfer.getData("text/plain").trim();
-                                                  if (droppedLabel) updateAnswer(question.id, droppedLabel);
-                                                }}
-                                                className={`min-h-10 rounded-2xl border-2 border-dashed px-4 py-3 transition-colors ${
-                                                  selectedOption
-                                                    ? "border-blue-300 bg-blue-50"
-                                                    : "border-slate-300 bg-white"
-                                                }`}
-                                              >
-                                                {selectedOption ? (
-                                                  <div className="flex items-start justify-between gap-3">
-                                                    <div className="text-sm text-slate-700">
-                                                      <span className="mr-2 font-semibold text-slate-900">
-                                                        {selectedOption.label}.
-                                                      </span>
-                                                      <span>{selectedOption.text}</span>
-                                                    </div>
-                                                    <button
-                                                      type="button"
-                                                      onClick={() => updateAnswer(question.id, "")}
-                                                      aria-label="Clear answer"
-                                                      className="rounded-full p-1 text-slate-400 transition-colors hover:bg-white hover:text-slate-600"
-                                                    >
-                                                      <X className="h-4 w-4" />
-                                                    </button>
-                                                  </div>
-                                                ) : (
-                                                  <div className="text-sm text-slate-400">
-                                                    Drag an option here
-                                                  </div>
-                                                )}
-                                              </div>
+                                    return (
+                                      <div
+                                        key={question.id}
+                                        className={`rounded-2xl border px-4 py-4 ${
+                                          currentSubmitted
+                                            ? correct
+                                              ? "border-emerald-200 bg-emerald-50/70"
+                                              : "border-rose-200 bg-rose-50/70"
+                                            : "border-slate-200 bg-slate-50/60"
+                                        }`}
+                                      >
+                                        <div className="flex flex-row flex-wrap items-start justify-between gap-3">
+                                          <div className="space-y-3 flex items-center gap-5">
+                                            <div className="text-sm leading-6 text-slate-700">
+                                              {stripHtml(question.stem) ||
+                                                stripHtml(group.title)}
                                             </div>
-                                            {currentSubmitted ? (
-                                              <div
-                                                className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                                                  correct ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
-                                                }`}
-                                              >
-                                                {correct ? "Correct" : "Incorrect"}
-                                              </div>
-                                            ) : null}
+                                            <div
+                                              onDragOver={(event) =>
+                                                event.preventDefault()
+                                              }
+                                              onDrop={(event) => {
+                                                event.preventDefault();
+                                                const droppedLabel =
+                                                  event.dataTransfer
+                                                    .getData("text/plain")
+                                                    .trim();
+                                                if (droppedLabel)
+                                                  updateAnswer(
+                                                    question.id,
+                                                    droppedLabel,
+                                                  );
+                                              }}
+                                              className={`min-h-10 rounded-2xl border-2 border-dashed px-4 py-3 transition-colors ${
+                                                selectedOption
+                                                  ? "border-blue-300 bg-blue-50"
+                                                  : "border-slate-300 bg-white"
+                                              }`}
+                                            >
+                                              {selectedOption ? (
+                                                <div className="flex items-start justify-between gap-3">
+                                                  <div className="text-sm text-slate-700">
+                                                    <span className="mr-2 font-semibold text-slate-900">
+                                                      {selectedOption.label}.
+                                                    </span>
+                                                    <span>
+                                                      {selectedOption.text}
+                                                    </span>
+                                                  </div>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                      updateAnswer(
+                                                        question.id,
+                                                        "",
+                                                      )
+                                                    }
+                                                    aria-label="Clear answer"
+                                                    className="rounded-full p-1 text-slate-400 transition-colors hover:bg-white hover:text-slate-600"
+                                                  >
+                                                    <X className="h-4 w-4" />
+                                                  </button>
+                                                </div>
+                                              ) : (
+                                                <div className="text-sm text-slate-400">
+                                                  Drag an option here
+                                                </div>
+                                              )}
+                                            </div>
                                           </div>
-
-                                          {currentSubmitted && acceptedAnswers.length > 0 ? (
-                                            <div className="mt-3 text-sm text-slate-700">
-                                              正确答案: <span className="font-semibold text-slate-900">{acceptedAnswers[0]}</span>
+                                          {currentSubmitted ? (
+                                            <div
+                                              className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                                correct
+                                                  ? "bg-emerald-100 text-emerald-700"
+                                                  : "bg-rose-100 text-rose-700"
+                                              }`}
+                                            >
+                                              {correct
+                                                ? "Correct"
+                                                : "Incorrect"}
                                             </div>
                                           ) : null}
                                         </div>
-                                      );
-                                    })}
-                                  </div>
 
-                                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                                      Options
-                                    </p>
-                                    <div className="mt-3 space-y-2">
-                                      {group.sharedOptions.map((option) => (
-                                        <div
-                                          key={option.id}
-                                          draggable
-                                          onDragStart={(event) => {
-                                            event.dataTransfer.setData("text/plain", getOptionLabel(option));
-                                            event.dataTransfer.effectAllowed = "move";
-                                          }}
-                                          className="cursor-grab rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 active:cursor-grabbing"
-                                        >
-                                          {option.label ? (
-                                            <span className="mr-2 font-semibold text-slate-900">{option.label}.</span>
-                                          ) : null}
-                                          <span>{option.text}</span>
-                                        </div>
-                                      ))}
-                                    </div>
+                                        {currentSubmitted &&
+                                        acceptedAnswers.length > 0 ? (
+                                          <div className="mt-3 text-sm text-slate-700">
+                                            正确答案:{" "}
+                                            <span className="font-semibold text-slate-900">
+                                              {acceptedAnswers[0]}
+                                            </span>
+                                          </div>
+                                        ) : null}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+
+                                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                    Options
+                                  </p>
+                                  <div className="mt-3 space-y-2">
+                                    {group.sharedOptions.map((option) => (
+                                      <div
+                                        key={option.id}
+                                        draggable
+                                        onDragStart={(event) => {
+                                          event.dataTransfer.setData(
+                                            "text/plain",
+                                            getOptionLabel(option),
+                                          );
+                                          event.dataTransfer.effectAllowed =
+                                            "move";
+                                        }}
+                                        className="cursor-grab rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 active:cursor-grabbing"
+                                      >
+                                        {option.label ? (
+                                          <span className="mr-2 font-semibold text-slate-900">
+                                            {option.label}.
+                                          </span>
+                                        ) : null}
+                                        <span>{option.text}</span>
+                                      </div>
+                                    ))}
                                   </div>
                                 </div>
-                              )
-                            : groupedMultipleChoice
-                            ? (() => {
+                              </div>
+                            ) : groupedMultipleChoice ? (
+                              (() => {
                                 const prompt =
                                   stripHtml(group.questions[0]?.stem) ||
                                   stripHtml(group.title);
@@ -845,7 +902,9 @@ export default function ListeningPracticePanel({
                                               type="checkbox"
                                               checked={checked}
                                               onChange={() =>
-                                                toggleOption(getOptionValue(option))
+                                                toggleOption(
+                                                  getOptionValue(option),
+                                                )
                                               }
                                               className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
                                             />
@@ -862,7 +921,8 @@ export default function ListeningPracticePanel({
                                       })}
                                     </div>
 
-                                    {currentSubmitted && acceptedAnswers.length > 0 ? (
+                                    {currentSubmitted &&
+                                    acceptedAnswers.length > 0 ? (
                                       <div className="mt-3 text-sm text-slate-700">
                                         正确答案:{" "}
                                         <span className="font-semibold text-slate-900">
@@ -875,7 +935,8 @@ export default function ListeningPracticePanel({
                                   </div>
                                 );
                               })()
-                            : group.questions.map((question) => {
+                            ) : (
+                              group.questions.map((question) => {
                                 const answer = answers[question.id];
                                 const correct = currentSubmitted
                                   ? isCorrectAnswer(
@@ -936,48 +997,51 @@ export default function ListeningPracticePanel({
                                     <div className="mt-4">
                                       {hasOptions ? (
                                         <div className="space-y-2">
-                                          {group.sharedOptions.map((option) => (
+                                          {group.sharedOptions.map((option) =>
                                             (() => {
-                                              const optionValue = getOptionValue(option);
+                                              const optionValue =
+                                                getOptionValue(option);
 
                                               return (
-                                            <label
-                                              key={option.id}
-                                              className={`flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-3 text-sm transition-colors ${
-                                                typeof answer === "string" &&
-                                                answer === optionValue
-                                                  ? "border-slate-400 bg-white"
-                                                  : "border-slate-200 bg-white/80 hover:border-slate-300"
-                                              }`}
-                                            >
-                                              <input
-                                                type="radio"
-                                                name={`question-${question.id}`}
-                                                value={optionValue}
-                                                checked={
-                                                  typeof answer === "string" &&
-                                                  answer === optionValue
-                                                }
-                                                onChange={(event) =>
-                                                  updateAnswer(
-                                                    question.id,
-                                                    event.target.value,
-                                                  )
-                                                }
-                                                className="mt-0.5 h-4 w-4 border-slate-300 text-slate-900 focus:ring-slate-400"
-                                              />
-                                              <span className="text-slate-700">
-                                                {option.label ? (
-                                                  <span className="mr-2 font-semibold text-slate-900">
-                                                    {option.label}.
+                                                <label
+                                                  key={option.id}
+                                                  className={`flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-3 text-sm transition-colors ${
+                                                    typeof answer ===
+                                                      "string" &&
+                                                    answer === optionValue
+                                                      ? "border-slate-400 bg-white"
+                                                      : "border-slate-200 bg-white/80 hover:border-slate-300"
+                                                  }`}
+                                                >
+                                                  <input
+                                                    type="radio"
+                                                    name={`question-${question.id}`}
+                                                    value={optionValue}
+                                                    checked={
+                                                      typeof answer ===
+                                                        "string" &&
+                                                      answer === optionValue
+                                                    }
+                                                    onChange={(event) =>
+                                                      updateAnswer(
+                                                        question.id,
+                                                        event.target.value,
+                                                      )
+                                                    }
+                                                    className="mt-0.5 h-4 w-4 border-slate-300 text-slate-900 focus:ring-slate-400"
+                                                  />
+                                                  <span className="text-slate-700">
+                                                    {option.label ? (
+                                                      <span className="mr-2 font-semibold text-slate-900">
+                                                        {option.label}.
+                                                      </span>
+                                                    ) : null}
+                                                    <span>{option.text}</span>
                                                   </span>
-                                                ) : null}
-                                                <span>{option.text}</span>
-                                              </span>
-                                            </label>
+                                                </label>
                                               );
-                                            })()
-                                          ))}
+                                            })(),
+                                          )}
                                         </div>
                                       ) : (
                                         <input
@@ -999,7 +1063,8 @@ export default function ListeningPracticePanel({
                                       )}
                                     </div>
 
-                                    {currentSubmitted && acceptedAnswers.length > 0 ? (
+                                    {currentSubmitted &&
+                                    acceptedAnswers.length > 0 ? (
                                       <div className="mt-3 text-sm text-slate-700">
                                         正确答案:{" "}
                                         <span className="font-semibold text-slate-900">
@@ -1009,14 +1074,16 @@ export default function ListeningPracticePanel({
                                     ) : null}
                                   </div>
                                 );
-                              })}
-                        </div>
-                      ) : null}
-                    </>
-                  );
-                })()}
-              </article>
-            ))}
+                              })
+                            )}
+                          </div>
+                        ) : null}
+                      </>
+                    );
+                  })()}
+                </article>
+              ))
+            )}
           </div>
         </section>
       ) : null}
