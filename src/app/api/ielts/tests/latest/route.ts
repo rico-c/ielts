@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { getAvailableListeningTestNos } from "@/lib/ielts-db";
+import { getAvailableTestNos } from "@/lib/ielts-db";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const module = searchParams.get("module") ?? "listening";
   const bookNo = Number(searchParams.get("bookNo") ?? "20");
 
-  if (module !== "listening") {
-    return NextResponse.json({ error: "Only listening is supported right now." }, { status: 400 });
+  if (module !== "listening" && module !== "reading" && module !== "writing") {
+    return NextResponse.json({ error: "Unsupported module." }, { status: 400 });
   }
 
   if (!Number.isFinite(bookNo)) {
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const testNos = await getAvailableListeningTestNos(bookNo);
+    const testNos = await getAvailableTestNos(bookNo, module);
     const latestTestNo = testNos.at(-1) ?? null;
 
     return NextResponse.json({

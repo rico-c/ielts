@@ -3,6 +3,7 @@
 import {
   createElement,
   Fragment,
+  memo,
   type CSSProperties,
   type ReactNode,
   useEffect,
@@ -135,6 +136,10 @@ function getInlineInputClasses(correct: boolean | null) {
   }
 
   return "border-slate-300 bg-white text-slate-900";
+}
+
+function getOptionValue(option: { label: string; text: string }) {
+  return option.label.trim() || option.text.trim();
 }
 
 function replacePlaceholdersWithInputs(
@@ -285,10 +290,10 @@ function renderHtmlNode(
     ),
   );
 
-  return <>{createElement(tagName, props, ...children)}</>;
+  return createElement(tagName, props, ...children);
 }
 
-function HtmlBlock({
+const HtmlBlock = memo(function HtmlBlock({
   html,
   questionsByNo = null,
   answers,
@@ -336,13 +341,29 @@ function HtmlBlock({
       {children}
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  if (prevProps.html !== nextProps.html) return false;
+  if (prevProps.questionsByNo !== nextProps.questionsByNo) return false;
+  if (prevProps.submitted !== nextProps.submitted) return false;
+
+  if (!prevProps.questionsByNo && !nextProps.questionsByNo) {
+    return true;
+  }
+
+  return prevProps.answers === nextProps.answers && prevProps.onAnswerChange === nextProps.onAnswerChange;
+});
 
 export default function ListeningPracticePanel({
   paper,
 }: {
   paper: ListeningPracticePaper;
 }) {
+  const moduleLabel =
+    paper.module === "reading"
+      ? "Reading Practice"
+      : paper.module === "writing"
+        ? "Writing Practice"
+        : "Listening Practice";
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
   const [activePartId, setActivePartId] = useState(() => paper.parts[0]?.id ?? "");
   const [submittedParts, setSubmittedParts] = useState<Record<string, boolean>>({});
@@ -364,7 +385,9 @@ export default function ListeningPracticePanel({
     () => paper.parts.find((part) => part.id === activePartId) ?? paper.parts[0] ?? null,
     [activePartId, paper],
   );
+  const currentIsWriting = paper.module === "writing";
   const currentSubmitted = currentPart ? Boolean(submittedParts[currentPart.id]) : false;
+  const currentWritingAnswerKey = currentPart ? `writing:${currentPart.id}` : "";
 
   const currentPartQuestions = useMemo(
     () =>
@@ -397,7 +420,7 @@ export default function ListeningPracticePanel({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-700">
-              Listening Practice
+              {moduleLabel}
             </p>
             <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-900">
               {paper.title} · Test {paper.testNo}
@@ -426,7 +449,7 @@ export default function ListeningPracticePanel({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {currentSubmitted ? (
+            {currentSubmitted && !currentIsWriting ? (
               <div className="rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700">
                 得分 {correctCount} / {totalQuestions}
               </div>
@@ -443,7 +466,7 @@ export default function ListeningPracticePanel({
               }}
               className="rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
             >
-              提交并查看答案
+              {currentIsWriting ? "保存作文" : "提交并查看答案"}
             </button>
           </div>
         </div>
@@ -498,7 +521,18 @@ export default function ListeningPracticePanel({
           </div>
 
           <div className="space-y-4 px-4 py-5 sm:px-6 sm:py-6">
-            {currentPart.groups.map((group) => (
+            {currentIsWriting ? (
+              // <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
+                <div className="space-y-3">
+                  <textarea
+                    value={typeof answers[currentWritingAnswerKey] === "string" ? answers[currentWritingAnswerKey] : ""}
+                    onChange={(event) => updateAnswer(currentWritingAnswerKey, event.target.value)}
+                    placeholder="在这里开始写作..."
+                    className="min-h-[420px] w-full rounded-[1.5rem] border border-slate-200 bg-white px-5 py-4 text-sm leading-7 text-slate-700 outline-none transition-colors focus:border-slate-400"
+                  />
+                </div>
+              // </div>
+            ) : currentPart.groups.map((group) => (
               <article
                 key={group.id}
                 className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-[0_8px_20px_rgba(15,23,42,0.04)]"
@@ -664,7 +698,7 @@ export default function ListeningPracticePanel({
                                     <div className="mt-4 space-y-2">
                                       {group.sharedOptions.map((option) => {
                                         const optionValue = normalizeText(
-                                          option.label,
+                                          getOptionValue(option),
                                         );
                                         const checked =
                                           selectedValues.includes(optionValue);
@@ -682,7 +716,7 @@ export default function ListeningPracticePanel({
                                               type="checkbox"
                                               checked={checked}
                                               onChange={() =>
-                                                toggleOption(option.label)
+                                                toggleOption(getOptionValue(option))
                                               }
                                               className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
                                             />
@@ -772,11 +806,15 @@ export default function ListeningPracticePanel({
                                       {hasOptions ? (
                                         <div className="space-y-2">
                                           {group.sharedOptions.map((option) => (
+                                            (() => {
+                                              const optionValue = getOptionValue(option);
+
+                                              return (
                                             <label
                                               key={option.id}
                                               className={`flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-3 text-sm transition-colors ${
                                                 typeof answer === "string" &&
-                                                answer === option.label
+                                                answer === optionValue
                                                   ? "border-slate-400 bg-white"
                                                   : "border-slate-200 bg-white/80 hover:border-slate-300"
                                               }`}
@@ -784,10 +822,10 @@ export default function ListeningPracticePanel({
                                               <input
                                                 type="radio"
                                                 name={`question-${question.id}`}
-                                                value={option.label}
+                                                value={optionValue}
                                                 checked={
                                                   typeof answer === "string" &&
-                                                  answer === option.label
+                                                  answer === optionValue
                                                 }
                                                 onChange={(event) =>
                                                   updateAnswer(
@@ -806,6 +844,8 @@ export default function ListeningPracticePanel({
                                                 <span>{option.text}</span>
                                               </span>
                                             </label>
+                                              );
+                                            })()
                                           ))}
                                         </div>
                                       ) : (

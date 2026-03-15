@@ -8,8 +8,8 @@ const BOOK_NUMBERS = Array.from({ length: 16 }, (_, index) => index + 5);
 const SERIES = "Cambridge IELTS";
 const MODULES = [
   { id: "listening", label: "听力", enabled: true },
-  { id: "reading", label: "阅读", enabled: false },
-  { id: "writing", label: "写作", enabled: false },
+  { id: "reading", label: "阅读", enabled: true },
+  { id: "writing", label: "写作", enabled: true },
   { id: "speaking", label: "口语", enabled: false },
 ] as const;
 type ModuleId = (typeof MODULES)[number]["id"];

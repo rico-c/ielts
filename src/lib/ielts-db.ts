@@ -47,7 +47,7 @@ export type ListeningPracticePaper = {
   title: string;
   book: string | null;
   testNo: number | null;
-  module: "listening";
+  module: "listening" | "reading" | "writing";
   parts: ListeningPart[];
 };
 
@@ -169,7 +169,7 @@ function parseSharedOptions(raw: string | null, questionType: string): Listening
   }
 }
 
-export async function getAvailableListeningTestNos(bookNo: number) {
+export async function getAvailableTestNos(bookNo: number, module: "listening" | "reading" | "writing") {
   const db = await getDb();
   const title = getPaperTitle(bookNo);
 
@@ -179,12 +179,12 @@ export async function getAvailableListeningTestNos(bookNo: number) {
         SELECT DISTINCT test_no
         FROM exam_papers
         WHERE title = ?1
-          AND book = 'listening'
+          AND book = ?2
           AND test_no IS NOT NULL
         ORDER BY test_no ASC
       `,
     )
-    .bind(title)
+    .bind(title, module)
     .all<{ test_no: number | null }>();
 
   return (results ?? [])
@@ -192,7 +192,7 @@ export async function getAvailableListeningTestNos(bookNo: number) {
     .filter((value: number | null): value is number => typeof value === "number" && Number.isFinite(value));
 }
 
-export async function getListeningPracticePaper(bookNo: number, testNo: number) {
+export async function getPracticePaper(bookNo: number, testNo: number, module: "listening" | "reading" | "writing") {
   const db = await getDb();
   const title = getPaperTitle(bookNo);
 
@@ -202,12 +202,12 @@ export async function getListeningPracticePaper(bookNo: number, testNo: number) 
         SELECT id, title, book, test_no
         FROM exam_papers
         WHERE title = ?1
-          AND book = 'listening'
-          AND test_no = ?2
+          AND book = ?2
+          AND test_no = ?3
         LIMIT 1
       `,
     )
-    .bind(title, testNo)
+    .bind(title, module, testNo)
     .first<PaperRow>();
 
   if (!paper) {
@@ -221,11 +221,11 @@ export async function getListeningPracticePaper(bookNo: number, testNo: number) 
           SELECT id, part_no, title, instruction_html, content_html, audio_url, sort_order
           FROM paper_parts
           WHERE paper_id = ?1
-            AND module = 'listening'
+            AND module = ?2
           ORDER BY sort_order ASC, part_no ASC
         `,
       )
-      .bind(paper.id)
+      .bind(paper.id, module)
       .all<PartRow>(),
     db
       .prepare(
@@ -236,11 +236,11 @@ export async function getListeningPracticePaper(bookNo: number, testNo: number) 
           FROM question_groups qg
           JOIN paper_parts pp ON pp.id = qg.part_id
           WHERE pp.paper_id = ?1
-            AND pp.module = 'listening'
+            AND pp.module = ?2
           ORDER BY pp.sort_order ASC, qg.group_no ASC
         `,
       )
-      .bind(paper.id)
+      .bind(paper.id, module)
       .all<GroupRow>(),
     db
       .prepare(
@@ -250,11 +250,11 @@ export async function getListeningPracticePaper(bookNo: number, testNo: number) 
           JOIN question_groups qg ON qg.id = q.group_id
           JOIN paper_parts pp ON pp.id = qg.part_id
           WHERE pp.paper_id = ?1
-            AND pp.module = 'listening'
+            AND pp.module = ?2
           ORDER BY q.question_no ASC, q.sort_order ASC
         `,
       )
-      .bind(paper.id)
+      .bind(paper.id, module)
       .all<QuestionRow>(),
   ]);
 
@@ -312,7 +312,7 @@ export async function getListeningPracticePaper(bookNo: number, testNo: number) 
     title: paper.title,
     book: paper.book,
     testNo: paper.test_no,
-    module: "listening" as const,
+    module,
     parts,
   } satisfies ListeningPracticePaper;
 }

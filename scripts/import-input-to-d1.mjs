@@ -10,8 +10,8 @@ import crypto from "node:crypto";
 const execFileAsync = promisify(execFile);
 
 const TITLE = 'IELTS20';
-const BOOK = 'listening';
-const TEST_NO = '4';
+const BOOK = 'writing';
+const TEST_NO = '1';
 
 function parseArgs(argv) {
   const options = {
@@ -214,13 +214,11 @@ function normalizeInput(input, forcedPaperId) {
     throw new Error("No importable parts found in input JSON.");
   }
 
-  const paperId =
-    forcedPaperId ||
-    String(paper.id || input?.paper_id || rawParts[0]?.paper_id || input?.p_id || crypto.randomUUID());
+  const paperId = forcedPaperId || crypto.randomUUID();
 
   const examPaper = {
     id: paperId,
-    source_paper_id: paper.source_paper_id || rawParts[0]?.paper_id || input?.p_id || null,
+    source_paper_id: paperId,
     title: TITLE,
     book: BOOK || null,
     test_no: TEST_NO,
@@ -255,7 +253,7 @@ function normalizeInput(input, forcedPaperId) {
       meta_json: JSON.stringify({
         raw_id: rawPart?.id || null,
         classify: rawPart?.classify || null,
-        source_paper_id: rawPart?.paper_id || null,
+        source_paper_id: paperId,
       }),
     };
     normalized.parts.push(partRecord);

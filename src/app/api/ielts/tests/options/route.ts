@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { getAvailableListeningTestNos } from "@/lib/ielts-db";
+import { getAvailableTestNos } from "@/lib/ielts-db";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const module = searchParams.get("module");
   const bookNo = Number(searchParams.get("bookNo"));
 
-  if (module !== "listening") {
+  if (module !== "listening" && module !== "reading" && module !== "writing") {
     return NextResponse.json({ testNos: [] });
   }
 
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const testNos = await getAvailableListeningTestNos(bookNo);
+    const testNos = await getAvailableTestNos(bookNo, module);
     return NextResponse.json({ testNos });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load test options.";

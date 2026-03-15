@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getListeningPracticePaper } from "@/lib/ielts-db";
+import { getPracticePaper } from "@/lib/ielts-db";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -7,8 +7,8 @@ export async function GET(request: Request) {
   const bookNo = Number(searchParams.get("bookNo"));
   const testNo = Number(searchParams.get("testNo"));
 
-  if (module !== "listening") {
-    return NextResponse.json({ error: "Only listening is supported right now." }, { status: 400 });
+  if (module !== "listening" && module !== "reading" && module !== "writing") {
+    return NextResponse.json({ error: "Unsupported module." }, { status: 400 });
   }
 
   if (!Number.isFinite(bookNo) || !Number.isFinite(testNo)) {
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const paper = await getListeningPracticePaper(bookNo, testNo);
+    const paper = await getPracticePaper(bookNo, testNo, module);
 
     if (!paper) {
       return NextResponse.json({ error: "Practice paper not found." }, { status: 404 });
