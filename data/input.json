@@ -1,51 +1,13 @@
 {
     "0": {
-        "id": "1219",
+        "id": "1225",
         "mobile": "13691214473",
         "title": "Part 1",
         "audio": "",
         "desc": "<p><span style=\"text-wrap-mode: wrap;\">You should spend about 20 minutes on this task.<\/span><\/p>",
-        "content": "<p><br\/><\/p><p><strong><em>The first table below shows changes in the total population of New York City from 1800 to 2000. The second and third tablesshow changes in the population of the five districts of the city (Manhattan, Brooklyn, Bronx, Queens, Staten lsland) over the same period.<\/em><\/strong><\/p><p><strong><em><br\/><\/em><\/strong><\/p><p><strong><em>Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<\/em><\/strong><\/p><p><br\/><\/p><p>Write at least 150 words.<\/p><p><br\/><\/p><p><img src=\"https:\/\/resource.gximg.cn\/8e058c_mcigylj32.png\" style=\"width: 448.222px; height: 466.222px;\"\/><\/p><p><br\/><\/p>",
+        "content": "<p><strong><em><br\/><\/em><\/strong><\/p><p><strong><em>The diagram below shows how fabric is manufactured from bamboo.<\/em><\/strong><\/p><p><strong><em><br\/><\/em><\/strong><\/p><p><strong><em>Summarise the information by selecting and reporting the mail features, and make comparisons where relevant.<\/em><\/strong><\/p><p><br\/><\/p><p>Write at least 150 words.<\/p><p><br\/><\/p><p><img src=\"https:\/\/resource.gximg.cn\/a37ac5_mciii8qp12.png\" style=\"width: 578.222px; height: 522.222px;\"\/><\/p><p><br\/><\/p>",
         "classify": "3",
-        "paper_id": "155",
-        "isvip": "2",
-        "is_submit": "1",
-        "value": "",
-        "pages": [
-            {
-                "title": " ",
-                "desc": "<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;<\/p>",
-                "content": "<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<\/p>",
-                "type": "1",
-                "real_type": "1",
-                "sections": [
-                    {
-                        "id": "3894",
-                        "title": "",
-                        "desc": "",
-                        "type": "1",
-                        "real_type": "1",
-                        "classify": "3",
-                        "res": "",
-                        "res_info": [],
-                        "chapter_id": "1219",
-                        "paper_id": "155",
-                        "questions": [],
-                        "options": []
-                    }
-                ]
-            }
-        ]
-    },
-    "1": {
-        "id": "1220",
-        "mobile": "13691214473",
-        "title": "Part 2",
-        "audio": "",
-        "desc": "<p>You should spend about 40 minutes on this task.<\/p>",
-        "content": "<p><strong><em><br\/><\/em><\/strong><\/p><p><strong><em>Access to clean water is a basic human right, Therefore every home should have a water supply that is provided free of charge.<\/em><\/strong><\/p><p><strong><em>Do you agree or disagree?<\/em><\/strong><\/p><p><strong><em><br\/><\/em><\/strong><\/p><p>Give reasons for your answer and include any relevant examples from your own knowledge or experience.<\/p><p><br\/><\/p><p>Write at least 250 words.<\/p><p><br\/><\/p>",
-        "classify": "3",
-        "paper_id": "155",
+        "paper_id": "158",
         "isvip": "2",
         "is_submit": "1",
         "value": "",
@@ -58,7 +20,7 @@
                 "real_type": "1",
                 "sections": [
                     {
-                        "id": "3895",
+                        "id": "3898",
                         "title": "",
                         "desc": "",
                         "type": "1",
@@ -66,8 +28,46 @@
                         "classify": "3",
                         "res": "",
                         "res_info": [],
-                        "chapter_id": "1220",
-                        "paper_id": "155",
+                        "chapter_id": "1225",
+                        "paper_id": "158",
+                        "questions": [],
+                        "options": []
+                    }
+                ]
+            }
+        ]
+    },
+    "1": {
+        "id": "1226",
+        "mobile": "13691214473",
+        "title": "Part 2",
+        "audio": "",
+        "desc": "<p><span style=\"text-wrap-mode: wrap;\">You should spend about 40 minutes on this task.<\/span><\/p>",
+        "content": "<p><strong><em><br\/><\/em><\/strong><\/p><p><strong><em>Many aspects of the way people dress today are influenced by global fashion trends.<\/em><\/strong><\/p><p><strong><em>How has global fashion become such a strong influence on people&#39;s lives?<\/em><\/strong><\/p><p><strong><em>Do you think this is a positive or negative development?<\/em><\/strong><\/p><p><strong><em><br\/><\/em><\/strong><\/p><p>Give reasons for your answer and include any relevant examples from your own knowledge or experience.<\/p><p><br\/><\/p><p>Write at least 250 words.<\/p><p><br\/><\/p>",
+        "classify": "3",
+        "paper_id": "158",
+        "isvip": "2",
+        "is_submit": "1",
+        "value": "",
+        "pages": [
+            {
+                "title": "",
+                "desc": "<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<\/p>",
+                "content": "<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<\/p>",
+                "type": "1",
+                "real_type": "1",
+                "sections": [
+                    {
+                        "id": "3901",
+                        "title": "",
+                        "desc": "",
+                        "type": "1",
+                        "real_type": "1",
+                        "classify": "3",
+                        "res": "",
+                        "res_info": [],
+                        "chapter_id": "1226",
+                        "paper_id": "158",
                         "questions": [],
                         "options": []
                     }

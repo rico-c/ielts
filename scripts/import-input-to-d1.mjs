@@ -10,8 +10,15 @@ import crypto from "node:crypto";
 const execFileAsync = promisify(execFile);
 
 const TITLE = 'IELTS20';
+
+// const BOOK = 'listening';
+// const BOOK = 'reading';
 const BOOK = 'writing';
-const TEST_NO = '1';
+
+// const TEST_NO = '1';
+// const TEST_NO = '2';
+// const TEST_NO = '3';
+const TEST_NO = '4';
 
 function parseArgs(argv) {
   const options = {

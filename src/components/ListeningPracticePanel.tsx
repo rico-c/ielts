@@ -10,6 +10,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { X } from "lucide-react";
 import ListeningAudioPlayer from "@/components/ListeningAudioPlayer";
 import type { ListeningPracticePaper, ListeningQuestion } from "@/lib/ielts-db";
 import { NeedHideHTML } from "@/constants/htmlhide";
@@ -139,6 +140,10 @@ function getInlineInputClasses(correct: boolean | null) {
 }
 
 function getOptionValue(option: { label: string; text: string }) {
+  return option.label.trim() || option.text.trim();
+}
+
+function getOptionLabel(option: { label: string; text: string }) {
   return option.label.trim() || option.text.trim();
 }
 
@@ -546,6 +551,9 @@ export default function ListeningPracticePanel({
                   const inlineFillBlank =
                     group.questionType === "fill_blank" &&
                     Boolean(group.contentHtml || group.instructionHtml);
+                  const isDragMatching =
+                    group.questionType === "matching" ||
+                    group.questionType === "map_labeling";
                   const groupedMultipleChoice =
                     group.questionType === "multiple_choice" &&
                     group.questions.length > 1 &&
@@ -608,7 +616,128 @@ export default function ListeningPracticePanel({
 
                       {!inlineFillBlank ? (
                         <div className="mt-5 space-y-3">
-                          {groupedMultipleChoice
+                          {isDragMatching
+                            ? (
+                                <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
+                                  <div className="space-y-3">
+                                    {group.questions.map((question) => {
+                                      const answer = answers[question.id];
+                                      const selectedLabel = typeof answer === "string" ? answer : "";
+                                      const selectedOption = group.sharedOptions.find(
+                                        (option) => getOptionLabel(option) === selectedLabel,
+                                      );
+                                      const correct = currentSubmitted
+                                        ? isCorrectAnswer(
+                                            answer,
+                                            question.answerText,
+                                            question.answerJson,
+                                          )
+                                        : null;
+                                      const acceptedAnswers = parseAnswerValues(
+                                        question.answerText,
+                                        question.answerJson,
+                                      );
+
+                                      return (
+                                        <div
+                                          key={question.id}
+                                          className={`rounded-2xl border px-4 py-4 ${
+                                            currentSubmitted
+                                              ? correct
+                                                ? "border-emerald-200 bg-emerald-50/70"
+                                                : "border-rose-200 bg-rose-50/70"
+                                              : "border-slate-200 bg-slate-50/60"
+                                          }`}
+                                        >
+                                          <div className="flex flex-row flex-wrap items-start justify-between gap-3">
+                                            <div className="space-y-3 flex items-center gap-5">
+                                              <div className="text-sm leading-6 text-slate-700">
+                                                {stripHtml(question.stem) || stripHtml(group.title)}
+                                              </div>
+                                              <div
+                                                onDragOver={(event) => event.preventDefault()}
+                                                onDrop={(event) => {
+                                                  event.preventDefault();
+                                                  const droppedLabel = event.dataTransfer.getData("text/plain").trim();
+                                                  if (droppedLabel) updateAnswer(question.id, droppedLabel);
+                                                }}
+                                                className={`min-h-10 rounded-2xl border-2 border-dashed px-4 py-3 transition-colors ${
+                                                  selectedOption
+                                                    ? "border-blue-300 bg-blue-50"
+                                                    : "border-slate-300 bg-white"
+                                                }`}
+                                              >
+                                                {selectedOption ? (
+                                                  <div className="flex items-start justify-between gap-3">
+                                                    <div className="text-sm text-slate-700">
+                                                      <span className="mr-2 font-semibold text-slate-900">
+                                                        {selectedOption.label}.
+                                                      </span>
+                                                      <span>{selectedOption.text}</span>
+                                                    </div>
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => updateAnswer(question.id, "")}
+                                                      aria-label="Clear answer"
+                                                      className="rounded-full p-1 text-slate-400 transition-colors hover:bg-white hover:text-slate-600"
+                                                    >
+                                                      <X className="h-4 w-4" />
+                                                    </button>
+                                                  </div>
+                                                ) : (
+                                                  <div className="text-sm text-slate-400">
+                                                    Drag an option here
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </div>
+                                            {currentSubmitted ? (
+                                              <div
+                                                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                                  correct ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+                                                }`}
+                                              >
+                                                {correct ? "Correct" : "Incorrect"}
+                                              </div>
+                                            ) : null}
+                                          </div>
+
+                                          {currentSubmitted && acceptedAnswers.length > 0 ? (
+                                            <div className="mt-3 text-sm text-slate-700">
+                                              正确答案: <span className="font-semibold text-slate-900">{acceptedAnswers[0]}</span>
+                                            </div>
+                                          ) : null}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+
+                                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                      Options
+                                    </p>
+                                    <div className="mt-3 space-y-2">
+                                      {group.sharedOptions.map((option) => (
+                                        <div
+                                          key={option.id}
+                                          draggable
+                                          onDragStart={(event) => {
+                                            event.dataTransfer.setData("text/plain", getOptionLabel(option));
+                                            event.dataTransfer.effectAllowed = "move";
+                                          }}
+                                          className="cursor-grab rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 active:cursor-grabbing"
+                                        >
+                                          {option.label ? (
+                                            <span className="mr-2 font-semibold text-slate-900">{option.label}.</span>
+                                          ) : null}
+                                          <span>{option.text}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            : groupedMultipleChoice
                             ? (() => {
                                 const prompt =
                                   stripHtml(group.questions[0]?.stem) ||
@@ -757,7 +886,9 @@ export default function ListeningPracticePanel({
                                   : null;
                                 const hasOptions =
                                   group.sharedOptions.length > 0 &&
-                                  group.questionType !== "fill_blank";
+                                  group.questionType !== "fill_blank" &&
+                                  group.questionType !== "matching" &&
+                                  group.questionType !== "map_labeling";
                                 const acceptedAnswers = parseAnswerValues(
                                   question.answerText,
                                   question.answerJson,
