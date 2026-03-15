@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import ListeningPracticePanel from "@/components/ListeningPracticePanel";
 import type { ListeningPracticePaper } from "@/lib/ielts-db";
 
-const BOOK_NUMBERS = Array.from({ length: 16 }, (_, index) => index + 5);
+const BOOK_NUMBERS = Array.from({ length: 13 }, (_, index) => index + 8);
 const SERIES = "Cambridge IELTS";
 const MODULES = [
   { id: "listening", label: "听力", enabled: true },
