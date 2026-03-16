@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS paper_parts (
   id TEXT PRIMARY KEY,
   paper_id TEXT NOT NULL,
   module TEXT NOT NULL CHECK (module IN ('listening', 'reading', 'writing')),
+  test TEXT,
   part_no INTEGER NOT NULL,
   title TEXT NOT NULL,
   instruction_html TEXT,
