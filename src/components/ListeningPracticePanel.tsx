@@ -228,6 +228,8 @@ function arraysEqual(left: string[], right: string[]) {
 function renderHtmlNode(
   node: ChildNode,
   questionsByNo: Map<number, ListeningQuestion> | null,
+  headingQuestionsByNo: Map<number, ListeningQuestion> | null,
+  headingOptionsByLabel: Map<string, { label: string; text: string }> | null,
   answers: Record<string, AnswerValue>,
   submitted: boolean,
   onAnswerChange: (questionId: string, value: string) => void,
@@ -258,6 +260,88 @@ function renderHtmlNode(
 
   const element = node as HTMLElement;
   const tagName = element.tagName.toLowerCase();
+
+  if (tagName === "a" && headingQuestionsByNo) {
+    const questionNo = Number((element.textContent ?? "").trim());
+    const question = Number.isFinite(questionNo)
+      ? headingQuestionsByNo.get(questionNo)
+      : null;
+
+    if (question) {
+      const answer = answers[question.id];
+      const selectedLabel = typeof answer === "string" ? answer : "";
+      const selectedOption =
+        selectedLabel && headingOptionsByLabel
+          ? headingOptionsByLabel.get(selectedLabel) ?? null
+          : null;
+      const acceptedAnswers = parseAnswerValues(
+        question.answerText,
+        question.answerJson,
+      );
+      const correct = submitted
+        ? isCorrectAnswer(answer, question.answerText, question.answerJson)
+        : null;
+
+      return (
+        <span key={key} className="flex w-full flex-col gap-2 align-middle">
+          <span
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => {
+              event.preventDefault();
+              const droppedLabel = event.dataTransfer
+                .getData("text/plain")
+                .trim();
+              if (droppedLabel) onAnswerChange(question.id, droppedLabel);
+            }}
+            className={`flex min-h-10 w-full min-w-28 items-center rounded-2xl border-2 border-dashed px-4 py-2 text-sm transition-colors ${
+              submitted
+                ? correct
+                  ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+                  : selectedLabel
+                    ? "border-rose-300 bg-rose-50 text-rose-900"
+                    : "border-slate-300 bg-white text-slate-400"
+                : selectedLabel
+                  ? "border-blue-300 bg-blue-50 text-slate-900"
+                  : "border-slate-300 bg-white text-slate-400"
+            }`}
+          >
+            {selectedOption ? (
+              <span className="flex items-center gap-3">
+                <span className="font-semibold text-slate-900">
+                  {question.questionNo}
+                </span>
+                <span>{selectedOption.text}</span>
+                <button
+                  type="button"
+                  onClick={() => onAnswerChange(question.id, "")}
+                  aria-label="Clear answer"
+                  className="rounded-full p-1 text-slate-400 transition-colors hover:bg-white hover:text-slate-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </span>
+            ) : (
+              <>
+                <span className="font-semibold text-slate-900">
+                  {question.questionNo}
+                </span>
+                {/* <span>Drop here</span> */}
+              </>
+            )}
+          </span>
+          {submitted && acceptedAnswers.length > 0 ? (
+            <span className="text-xs text-slate-600">
+              正确答案:{" "}
+              <span className="font-semibold text-slate-900">
+                {acceptedAnswers[0]}
+              </span>
+            </span>
+          ) : null}
+        </span>
+      );
+    }
+  }
+
   const props: Record<string, unknown> = { key };
 
   for (const attr of Array.from(element.attributes)) {
@@ -288,6 +372,8 @@ function renderHtmlNode(
     renderHtmlNode(
       child,
       questionsByNo,
+      headingQuestionsByNo,
+      headingOptionsByLabel,
       answers,
       submitted,
       onAnswerChange,
@@ -302,12 +388,16 @@ const HtmlBlock = memo(
   function HtmlBlock({
     html,
     questionsByNo = null,
+    headingQuestionsByNo = null,
+    headingOptionsByLabel = null,
     answers,
     submitted,
     onAnswerChange,
   }: {
     html: string | null;
     questionsByNo?: Map<number, ListeningQuestion> | null;
+    headingQuestionsByNo?: Map<number, ListeningQuestion> | null;
+    headingOptionsByLabel?: Map<string, { label: string; text: string }> | null;
     answers: Record<string, AnswerValue>;
     submitted: boolean;
     onAnswerChange: (questionId: string, value: string) => void;
@@ -320,7 +410,7 @@ const HtmlBlock = memo(
 
     if (!html) return null;
 
-    if (!isMounted || !questionsByNo) {
+    if (!isMounted || (!questionsByNo && !headingQuestionsByNo)) {
       return (
         <div
           className="ielts-richtext prose prose-slate max-w-none text-sm"
@@ -335,6 +425,8 @@ const HtmlBlock = memo(
       renderHtmlNode(
         node,
         questionsByNo,
+        headingQuestionsByNo,
+        headingOptionsByLabel,
         answers,
         submitted,
         onAnswerChange,
@@ -351,9 +443,18 @@ const HtmlBlock = memo(
   (prevProps, nextProps) => {
     if (prevProps.html !== nextProps.html) return false;
     if (prevProps.questionsByNo !== nextProps.questionsByNo) return false;
+    if (prevProps.headingQuestionsByNo !== nextProps.headingQuestionsByNo)
+      return false;
+    if (prevProps.headingOptionsByLabel !== nextProps.headingOptionsByLabel)
+      return false;
     if (prevProps.submitted !== nextProps.submitted) return false;
 
-    if (!prevProps.questionsByNo && !nextProps.questionsByNo) {
+    if (
+      !prevProps.questionsByNo &&
+      !nextProps.questionsByNo &&
+      !prevProps.headingQuestionsByNo &&
+      !nextProps.headingQuestionsByNo
+    ) {
       return true;
     }
 
@@ -424,6 +525,28 @@ export default function ListeningPracticePanel({
         : [],
     [currentPart],
   );
+  const currentHeadingQuestionsByNo = useMemo(() => {
+    if (!currentPart) return null;
+
+    const headingQuestions = currentPart.groups
+      .filter((group) => group.questionType === "matching_headings")
+      .flatMap((group) => group.questions)
+      .map((question) => [question.questionNo, question] as const);
+
+    return headingQuestions.length > 0 ? new Map(headingQuestions) : null;
+  }, [currentPart]);
+  const currentHeadingOptionsByLabel = useMemo(() => {
+    if (!currentPart) return null;
+
+    const headingGroups = currentPart.groups.filter(
+      (group) => group.questionType === "matching_headings",
+    );
+    const options = headingGroups.flatMap((group) => group.sharedOptions);
+
+    return options.length > 0
+      ? new Map(options.map((option) => [getOptionLabel(option), option] as const))
+      : null;
+  }, [currentPart]);
 
   const totalQuestions = currentPartQuestions.length;
   const correctCount = currentSubmitted
@@ -536,6 +659,8 @@ export default function ListeningPracticePanel({
                 html={currentPart.contentHtml}
                 answers={answers}
                 submitted={currentSubmitted}
+                headingQuestionsByNo={currentHeadingQuestionsByNo}
+                headingOptionsByLabel={currentHeadingOptionsByLabel}
                 onAnswerChange={updateAnswer}
               />
             ) : null}
@@ -574,6 +699,9 @@ export default function ListeningPracticePanel({
                     const inlineFillBlank =
                       group.questionType === "fill_blank" &&
                       Boolean(group.contentHtml || group.instructionHtml);
+                    const isMatchingHeadings =
+                      group.questionType === "matching_headings" &&
+                      Boolean(group.contentHtml);
                     const isDragMatching =
                       group.questionType === "matching" ||
                       group.questionType === "map_labeling";
@@ -618,6 +746,7 @@ export default function ListeningPracticePanel({
                             </div>
                           ) : null}
                           {group.contentHtml &&
+                          !isMatchingHeadings &&
                           NeedHideHTML !== group.contentHtml ? (
                             <div className="">
                               <HtmlBlock
@@ -625,6 +754,7 @@ export default function ListeningPracticePanel({
                                 questionsByNo={
                                   inlineFillBlank ? questionsByNo : null
                                 }
+                                headingQuestionsByNo={null}
                                 answers={answers}
                                 submitted={currentSubmitted}
                                 onAnswerChange={updateAnswer}
@@ -649,7 +779,43 @@ export default function ListeningPracticePanel({
 
                         {!inlineFillBlank ? (
                           <div className="mt-5 space-y-3">
-                            {isDragMatching ? (
+                            {isMatchingHeadings ? (
+                              <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
+                                {/* <div className="rounded-2xl border border-slate-200 bg-white p-4"> */}
+                                  {/* <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                    Options
+                                  </p> */}
+                                  <div className="mt-3 space-y-2">
+                                    {group.sharedOptions.map((option) => (
+                                      <div
+                                        key={option.id}
+                                        draggable
+                                        onDragStart={(event) => {
+                                          event.dataTransfer.setData(
+                                            "text/plain",
+                                            getOptionLabel(option),
+                                          );
+                                          event.dataTransfer.effectAllowed =
+                                            "move";
+                                        }}
+                                        className="cursor-grab rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 active:cursor-grabbing"
+                                      >
+                                        {option.label ? (
+                                          <span className="mr-2 font-semibold text-slate-900">
+                                            {option.label}.
+                                          </span>
+                                        ) : null}
+                                        <span>{option.text}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                {/* </div> */}
+
+                                {/* <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                                  将右侧标题拖拽到上方阅读正文中对应题号的位置。
+                                </div> */}
+                              </div>
+                            ) : isDragMatching ? (
                               <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
                                 <div className="space-y-3">
                                   {group.questions.map((question) => {

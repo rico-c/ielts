@@ -9,7 +9,7 @@ import crypto from "node:crypto";
 
 const execFileAsync = promisify(execFile);
 
-const TITLE = 'IELTS10';
+const TITLE = 'IELTS8';
 
 // const BOOK = 'listening';
 // const BOOK = 'reading';
@@ -117,6 +117,9 @@ function inferQuestionType(rawType, rawRealType, module) {
   if (realType === "11") return "fill_blank";
   if (realType === "9") return "single_choice";
   if (realType === "10") return "multiple_choice";
+
+  // MANUAL
+  if (type === "14") return "fill_blank";
   return "unknown";
 }
 
