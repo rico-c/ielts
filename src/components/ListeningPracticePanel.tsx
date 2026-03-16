@@ -608,6 +608,15 @@ export default function ListeningPracticePanel({
                               onAnswerChange={updateAnswer}
                             />
                           ) : null}
+                          {group.imageUrl ? (
+                            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                              <img
+                                src={'http://uimg.gximg.cn/ieltscb' + group.imageUrl}
+                                alt={group.title || "Question illustration"}
+                                className="h-auto w-[500px] object-contain"
+                              />
+                            </div>
+                          ) : null}
                           {group.contentHtml &&
                           NeedHideHTML !== group.contentHtml ? (
                             <div className="">

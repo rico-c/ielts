@@ -23,6 +23,7 @@ export type ListeningQuestionGroup = {
   title: string | null;
   instructionHtml: string | null;
   contentHtml: string | null;
+  imageUrl: string | null;
   questionType: string;
   answerRule: string | null;
   questionRangeStart: number | null;
@@ -75,6 +76,7 @@ type GroupRow = {
   title: string | null;
   instruction_html: string | null;
   content_html: string | null;
+  meta_json: string | null;
   question_type: string;
   answer_rule: string | null;
   question_range_start: number | null;
@@ -169,6 +171,17 @@ function parseSharedOptions(raw: string | null, questionType: string): Listening
   }
 }
 
+function parseGroupImageUrl(raw: string | null) {
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw);
+    return typeof parsed?.image_url === "string" && parsed.image_url.trim() ? parsed.image_url.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getAvailableTestNos(bookNo: number, module: "listening" | "reading" | "writing") {
   const db = await getDb();
   const title = getPaperTitle(bookNo);
@@ -231,6 +244,7 @@ export async function getPracticePaper(bookNo: number, testNo: number, module: "
       .prepare(
         `
           SELECT qg.id, qg.part_id, qg.group_no, qg.title, qg.instruction_html, qg.content_html,
+                 qg.meta_json,
                  qg.question_type, qg.answer_rule, qg.question_range_start, qg.question_range_end,
                  qg.shared_options_json
           FROM question_groups qg
@@ -283,6 +297,7 @@ export async function getPracticePaper(bookNo: number, testNo: number, module: "
       title: row.title,
       instructionHtml: row.instruction_html,
       contentHtml: row.content_html,
+      imageUrl: parseGroupImageUrl(row.meta_json),
       questionType: row.question_type,
       answerRule: row.answer_rule,
       questionRangeStart: row.question_range_start,

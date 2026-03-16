@@ -9,7 +9,7 @@ import crypto from "node:crypto";
 
 const execFileAsync = promisify(execFile);
 
-const TITLE = 'IELTS20';
+const TITLE = 'IELTS10';
 
 // const BOOK = 'listening';
 // const BOOK = 'reading';
@@ -24,7 +24,7 @@ function parseArgs(argv) {
   const options = {
     input: "data/input.json",
     db: "ielts",
-    remote: false,
+    remote: true,
     dryRun: false,
     paperId: "",
   };
@@ -367,6 +367,12 @@ function normalizeInput(input, forcedPaperId) {
             raw_section_id: section?.id || null,
             raw_page_type: page?.type || null,
             raw_real_type: page?.real_type || null,
+            image_url: section?.res || page?.res || null,
+            image_info: Array.isArray(section?.res_info)
+              ? section.res_info
+              : Array.isArray(page?.res_info)
+                ? page.res_info
+                : [],
           }),
         });
 
