@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import ListeningPracticePanel from "@/components/ListeningPracticePanel";
 import type { ListeningPracticePaper } from "@/lib/ielts-db";
 
 const BOOK_NUMBERS = Array.from({ length: 13 }, (_, index) => index + 8);
+const TEST_NUMBERS = [1, 2, 3, 4] as const;
 const SERIES = "Cambridge IELTS";
 const MODULES = [
   { id: "listening", label: "听力", enabled: true },
@@ -13,30 +15,56 @@ const MODULES = [
   { id: "speaking", label: "口语", enabled: false },
 ] as const;
 type ModuleId = (typeof MODULES)[number]["id"];
-type TestSelectorState = "idle" | "loading" | "success" | "error";
 type PracticeState = "idle" | "loading" | "success" | "error";
 
-export default function DashboardPracticePage() {
-  const [activeBookNo, setActiveBookNo] = useState(20);
-  const [activeModule, setActiveModule] = useState<ModuleId>("listening");
-  const [activeTestNo, setActiveTestNo] = useState<number | undefined>(
-    undefined,
+function parseBookNo(value: string | null) {
+  const parsed = Number(value);
+  return BOOK_NUMBERS.includes(parsed) ? parsed : 20;
+}
+
+function parseModuleId(value: string | null): ModuleId {
+  return MODULES.some((module) => module.id === value && module.enabled)
+    ? (value as ModuleId)
+    : "listening";
+}
+
+function parsePositiveNumber(value: string | null) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function parseTestNo(value: string | null) {
+  const parsed = Number(value);
+  return TEST_NUMBERS.includes(parsed as (typeof TEST_NUMBERS)[number])
+    ? parsed
+    : 1;
+}
+
+function getExpectedPartNos(module: ModuleId) {
+  if (module === "writing") return [1, 2];
+  if (module === "reading") return [1, 2, 3];
+  return [1, 2, 3, 4];
+}
+
+function DashboardPracticeContent() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [activeBookNo, setActiveBookNo] = useState(() =>
+    parseBookNo(searchParams.get("book")),
   );
-  const [availableTestNos, setAvailableTestNos] = useState<number[]>([]);
-  const [testSelectorState, setTestSelectorState] =
-    useState<TestSelectorState>("idle");
+  const [activeModule, setActiveModule] = useState<ModuleId>(() =>
+    parseModuleId(searchParams.get("module")),
+  );
+  const [activeTestNo, setActiveTestNo] = useState<number | undefined>(
+    () => parseTestNo(searchParams.get("test")),
+  );
+  const [activePartNo, setActivePartNo] = useState<number | undefined>(() =>
+    parsePositiveNumber(searchParams.get("part")),
+  );
   const [practiceState, setPracticeState] = useState<PracticeState>("idle");
   const [practicePaper, setPracticePaper] =
     useState<ListeningPracticePaper | null>(null);
-
-  const optionsApiUrl = useMemo(() => {
-    const params = new URLSearchParams({
-      series: SERIES,
-      bookNo: String(activeBookNo),
-      module: activeModule,
-    });
-    return `/api/ielts/tests/options?${params.toString()}`;
-  }, [activeBookNo, activeModule]);
 
   const practiceApiUrl = useMemo(() => {
     if (typeof activeTestNo !== "number") return "";
@@ -51,51 +79,34 @@ export default function DashboardPracticePage() {
   }, [activeBookNo, activeModule, activeTestNo]);
 
   useEffect(() => {
-    let cancelled = false;
+    if (!practicePaper) return;
+    const expectedPartNos = getExpectedPartNos(activeModule);
 
-    async function loadTestNos() {
-      setTestSelectorState("loading");
-
-      try {
-        const response = await fetch(optionsApiUrl, { cache: "no-store" });
-        const json = (await response.json()) as {
-          testNos?: number[];
-          error?: string;
-        };
-
-        if (!response.ok) {
-          throw new Error(json.error || "Failed to load available tests.");
-        }
-
-        const nextTestNos = Array.isArray(json.testNos)
-          ? json.testNos.filter(
-              (value): value is number =>
-                typeof value === "number" && Number.isFinite(value),
-            )
-          : [];
-
-        if (cancelled) return;
-
-        setAvailableTestNos(nextTestNos);
-        setActiveTestNo((current) => {
-          if (typeof current === "number" && nextTestNos.includes(current))
-            return current;
-          return nextTestNos[0];
-        });
-        setTestSelectorState("success");
-      } catch {
-        if (cancelled) return;
-        setAvailableTestNos([]);
-        setActiveTestNo(undefined);
-        setTestSelectorState("error");
+    setActivePartNo((current) => {
+      if (typeof current === "number" && expectedPartNos.includes(current)) {
+        return current;
       }
+
+      return expectedPartNos[0];
+    });
+  }, [activeModule, practicePaper]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    params.set("book", String(activeBookNo));
+    params.set("module", activeModule);
+
+    if (typeof activeTestNo === "number") {
+      params.set("test", String(activeTestNo));
     }
 
-    loadTestNos();
-    return () => {
-      cancelled = true;
-    };
-  }, [optionsApiUrl]);
+    if (typeof activePartNo === "number") {
+      params.set("part", String(activePartNo));
+    }
+
+    const nextUrl = `${pathname}?${params.toString()}`;
+    router.replace(nextUrl, { scroll: false });
+  }, [activeBookNo, activeModule, activePartNo, activeTestNo, pathname, router]);
 
   useEffect(() => {
     if (!practiceApiUrl) {
@@ -159,7 +170,8 @@ export default function DashboardPracticePage() {
                     type="button"
                     onClick={() => {
                       setActiveBookNo(bookNo);
-                      setActiveTestNo(undefined);
+                      setActiveTestNo(1);
+                      setActivePartNo(undefined);
                     }}
                     className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
                       active
@@ -188,7 +200,8 @@ export default function DashboardPracticePage() {
                     onClick={() => {
                       if (module.enabled) {
                         setActiveModule(module.id);
-                        setActiveTestNo(undefined);
+                        setActiveTestNo(1);
+                        setActivePartNo(undefined);
                       }
                     }}
                     disabled={!module.enabled}
@@ -208,32 +221,22 @@ export default function DashboardPracticePage() {
             </div>
 
             <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
-              {testSelectorState === "loading" ? (
-                <div className="rounded-full border border-[var(--line)] bg-slate-50 px-4 py-2 text-sm text-slate-500">
-                  正在加载 TEST...
-                </div>
-              ) : null}
-
-              {testSelectorState !== "loading" &&
-              availableTestNos.length === 0 ? (
-                <div className="rounded-full border border-dashed border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-400">
-                  暂无可选 TEST
-                </div>
-              ) : null}
-
-              {availableTestNos.length > 0 ? (
+              {TEST_NUMBERS.length > 0 ? (
                 <div className=" w-0.5 text-sm bg-neutral-300 mr-2">
                 </div>
               ) : null}
 
-              {availableTestNos.map((testNo) => {
+              {TEST_NUMBERS.map((testNo) => {
                 const active = testNo === activeTestNo;
 
                 return (
                   <button
                     key={testNo}
                     type="button"
-                    onClick={() => setActiveTestNo(testNo)}
+                    onClick={() => {
+                      setActiveTestNo(testNo);
+                      setActivePartNo(undefined);
+                    }}
                     className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                       active
                         ? "bg-emerald-600 text-white"
@@ -281,8 +284,28 @@ export default function DashboardPracticePage() {
       ) : null}
 
       {practiceState === "success" && practicePaper ? (
-        <ListeningPracticePanel paper={practicePaper} />
+        <ListeningPracticePanel
+          paper={practicePaper}
+          activePartNo={activePartNo}
+          onPartChange={setActivePartNo}
+        />
       ) : null}
     </section>
+  );
+}
+
+export default function DashboardPracticePage() {
+  return (
+    <Suspense
+      fallback={
+        <section className="space-y-6">
+          <div className="rounded-[2rem] border border-[var(--line)] bg-white px-6 py-10 text-center text-sm text-slate-500 shadow-sm">
+            正在加载练习页面...
+          </div>
+        </section>
+      }
+    >
+      <DashboardPracticeContent />
+    </Suspense>
   );
 }

@@ -10,7 +10,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import ListeningAudioPlayer from "@/components/ListeningAudioPlayer";
 import type { ListeningPracticePaper, ListeningQuestion } from "@/lib/ielts-db";
 import { NeedHideHTML } from "@/constants/htmlhide";
@@ -32,6 +32,16 @@ function stripHtml(html: string | null) {
     .replace(/&amp;/gi, "&")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function hasRenderableHtmlContent(html: string | null) {
+  if (!html) return false;
+
+  if (stripHtml(html)) {
+    return true;
+  }
+
+  return /<(img|audio|video|iframe|svg|table|hr|br)\b/i.test(html);
 }
 
 function parseAnswerValues(
@@ -110,7 +120,7 @@ function isCorrectAnswer(
   return false;
 }
 
-function parseStyleAttribute(style: string) {
+function parseStyleAttribute(style: string, tagName?: string) {
   return style
     .split(";")
     .reduce<Record<string, string | number>>((acc, rule) => {
@@ -121,6 +131,13 @@ function parseStyleAttribute(style: string) {
         .trim()
         .replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
       const value = rawValue.trim();
+
+      if (
+        tagName === "table" &&
+        (prop === "width" || prop === "minWidth" || prop === "maxWidth")
+      ) {
+        return acc;
+      }
 
       acc[prop] = /^\d+(\.\d+)?$/.test(value) ? Number(value) : value;
       return acc;
@@ -145,6 +162,116 @@ function getOptionValue(option: { label: string; text: string }) {
 
 function getOptionLabel(option: { label: string; text: string }) {
   return option.label.trim() || option.text.trim();
+}
+
+function replacePlaceholdersWithDropZones(
+  text: string,
+  questionsByNo: Map<number, ListeningQuestion>,
+  optionsByLabel: Map<string, { label: string; text: string }>,
+  answers: Record<string, AnswerValue>,
+  submitted: boolean,
+  onAnswerChange: (questionId: string, value: string) => void,
+) {
+  const pattern = /#####-(\d+)-#####/g;
+  const nodes: ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null = null;
+
+  while ((match = pattern.exec(text)) !== null) {
+    const [token, rawQuestionNo] = match;
+    const start = match.index;
+    const questionNo = Number(rawQuestionNo);
+    const question = questionsByNo.get(questionNo);
+
+    if (start > lastIndex) {
+      nodes.push(text.slice(lastIndex, start));
+    }
+
+    if (!question) {
+      nodes.push(token);
+      lastIndex = start + token.length;
+      continue;
+    }
+
+    const answer = answers[question.id];
+    const selectedLabel = typeof answer === "string" ? answer : "";
+    const selectedOption =
+      selectedLabel ? optionsByLabel.get(selectedLabel) ?? null : null;
+    const correct = submitted
+      ? isCorrectAnswer(answer, question.answerText, question.answerJson)
+      : null;
+    const acceptedAnswers = parseAnswerValues(
+      question.answerText,
+      question.answerJson,
+    );
+
+    nodes.push(
+      <span
+        key={`${question.id}-wrapper`}
+        className="mx-1 inline-flex max-w-full align-middle"
+      >
+        <span className="flex flex-col gap-2">
+          <span
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => {
+              event.preventDefault();
+              const droppedLabel = event.dataTransfer
+                .getData("text/plain")
+                .trim();
+              if (droppedLabel) onAnswerChange(question.id, droppedLabel);
+            }}
+            className={`inline-flex min-h-10 min-w-32 items-center rounded-xl border-2 border-dashed px-3 py-2 text-sm transition-colors ${
+              submitted
+                ? correct
+                  ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+                  : selectedLabel
+                    ? "border-rose-300 bg-rose-50 text-rose-900"
+                    : "border-slate-300 bg-white text-slate-400"
+                : selectedLabel
+                  ? "border-blue-300 bg-blue-50 text-slate-900"
+                  : "border-slate-300 bg-white text-slate-400"
+            }`}
+          >
+            {selectedOption ? (
+              <span className="flex items-center gap-2">
+                <span className="font-semibold text-slate-900">
+                  {selectedOption.text}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onAnswerChange(question.id, "")}
+                  aria-label={`Clear answer for question ${question.questionNo}`}
+                  className="rounded-full p-1 text-slate-400 transition-colors hover:bg-white hover:text-slate-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </span>
+            ) : (
+              <span className="font-semibold text-slate-500">
+                {question.questionNo}
+              </span>
+            )}
+          </span>
+          {submitted && acceptedAnswers.length > 0 ? (
+            <span className="text-xs text-slate-600">
+              正确答案:{" "}
+              <span className="font-semibold text-slate-900">
+                {acceptedAnswers[0]}
+              </span>
+            </span>
+          ) : null}
+        </span>
+      </span>,
+    );
+
+    lastIndex = start + token.length;
+  }
+
+  if (lastIndex < text.length) {
+    nodes.push(text.slice(lastIndex));
+  }
+
+  return nodes;
 }
 
 function replacePlaceholdersWithInputs(
@@ -228,6 +355,8 @@ function arraysEqual(left: string[], right: string[]) {
 function renderHtmlNode(
   node: ChildNode,
   questionsByNo: Map<number, ListeningQuestion> | null,
+  dragQuestionsByNo: Map<number, ListeningQuestion> | null,
+  dragOptionsByLabel: Map<string, { label: string; text: string }> | null,
   headingQuestionsByNo: Map<number, ListeningQuestion> | null,
   headingOptionsByLabel: Map<string, { label: string; text: string }> | null,
   answers: Record<string, AnswerValue>,
@@ -237,7 +366,26 @@ function renderHtmlNode(
 ): ReactNode {
   if (node.nodeType === Node.TEXT_NODE) {
     const text = node.textContent ?? "";
-    if (!questionsByNo || !text.includes("#####-")) {
+    if (!text.includes("#####-")) {
+      return text;
+    }
+
+    if (dragQuestionsByNo && dragOptionsByLabel) {
+      return (
+        <Fragment key={key}>
+          {replacePlaceholdersWithDropZones(
+            text,
+            dragQuestionsByNo,
+            dragOptionsByLabel,
+            answers,
+            submitted,
+            onAnswerChange,
+          )}
+        </Fragment>
+      );
+    }
+
+    if (!questionsByNo) {
       return text;
     }
 
@@ -351,7 +499,16 @@ function renderHtmlNode(
     }
 
     if (attr.name === "style") {
-      props.style = parseStyleAttribute(attr.value) as CSSProperties;
+      props.style = parseStyleAttribute(attr.value, tagName) as CSSProperties;
+      continue;
+    }
+
+    if (
+      tagName === "table" &&
+      (attr.name === "width" ||
+        attr.name === "min-width" ||
+        attr.name === "max-width")
+    ) {
       continue;
     }
 
@@ -372,6 +529,8 @@ function renderHtmlNode(
     renderHtmlNode(
       child,
       questionsByNo,
+      dragQuestionsByNo,
+      dragOptionsByLabel,
       headingQuestionsByNo,
       headingOptionsByLabel,
       answers,
@@ -388,6 +547,8 @@ const HtmlBlock = memo(
   function HtmlBlock({
     html,
     questionsByNo = null,
+    dragQuestionsByNo = null,
+    dragOptionsByLabel = null,
     headingQuestionsByNo = null,
     headingOptionsByLabel = null,
     answers,
@@ -396,6 +557,8 @@ const HtmlBlock = memo(
   }: {
     html: string | null;
     questionsByNo?: Map<number, ListeningQuestion> | null;
+    dragQuestionsByNo?: Map<number, ListeningQuestion> | null;
+    dragOptionsByLabel?: Map<string, { label: string; text: string }> | null;
     headingQuestionsByNo?: Map<number, ListeningQuestion> | null;
     headingOptionsByLabel?: Map<string, { label: string; text: string }> | null;
     answers: Record<string, AnswerValue>;
@@ -408,23 +571,32 @@ const HtmlBlock = memo(
       setIsMounted(true);
     }, []);
 
-    if (!html) return null;
+    if (!hasRenderableHtmlContent(html)) return null;
 
-    if (!isMounted || (!questionsByNo && !headingQuestionsByNo)) {
+    const safeHtml: string = html ?? "";
+
+    if (
+      !isMounted ||
+      (!questionsByNo &&
+        !dragQuestionsByNo &&
+        !headingQuestionsByNo)
+    ) {
       return (
         <div
           className="ielts-richtext prose prose-slate max-w-none text-sm"
-          dangerouslySetInnerHTML={{ __html: html }}
+          dangerouslySetInnerHTML={{ __html: safeHtml }}
         />
       );
     }
 
     const parser = new DOMParser();
-    const doc = parser.parseFromString(html, "text/html");
+    const doc = parser.parseFromString(safeHtml, "text/html");
     const children = Array.from(doc.body.childNodes).map((node, index) =>
       renderHtmlNode(
         node,
         questionsByNo,
+        dragQuestionsByNo,
+        dragOptionsByLabel,
         headingQuestionsByNo,
         headingOptionsByLabel,
         answers,
@@ -443,6 +615,10 @@ const HtmlBlock = memo(
   (prevProps, nextProps) => {
     if (prevProps.html !== nextProps.html) return false;
     if (prevProps.questionsByNo !== nextProps.questionsByNo) return false;
+    if (prevProps.dragQuestionsByNo !== nextProps.dragQuestionsByNo)
+      return false;
+    if (prevProps.dragOptionsByLabel !== nextProps.dragOptionsByLabel)
+      return false;
     if (prevProps.headingQuestionsByNo !== nextProps.headingQuestionsByNo)
       return false;
     if (prevProps.headingOptionsByLabel !== nextProps.headingOptionsByLabel)
@@ -452,6 +628,8 @@ const HtmlBlock = memo(
     if (
       !prevProps.questionsByNo &&
       !nextProps.questionsByNo &&
+      !prevProps.dragQuestionsByNo &&
+      !nextProps.dragQuestionsByNo &&
       !prevProps.headingQuestionsByNo &&
       !nextProps.headingQuestionsByNo
     ) {
@@ -467,9 +645,19 @@ const HtmlBlock = memo(
 
 export default function ListeningPracticePanel({
   paper,
+  activePartNo,
+  onPartChange,
 }: {
   paper: ListeningPracticePaper;
+  activePartNo?: number;
+  onPartChange?: (partNo: number) => void;
 }) {
+  const expectedPartNos =
+    paper.module === "writing"
+      ? [1, 2]
+      : paper.module === "reading"
+        ? [1, 2, 3]
+        : [1, 2, 3, 4];
   const moduleLabel =
     paper.module === "reading"
       ? "Reading"
@@ -504,6 +692,24 @@ export default function ListeningPracticePanel({
       null,
     [activePartId, paper],
   );
+  const selectedPartNo = activePartNo ?? currentPart?.partNo ?? expectedPartNos[0];
+
+  useEffect(() => {
+    if (paper.parts.length === 0) {
+      setActivePartId("");
+      return;
+    }
+
+    const nextPart =
+      typeof activePartNo === "number"
+        ? paper.parts.find((part) => part.partNo === activePartNo) ??
+          paper.parts[0]
+        : paper.parts[0];
+
+    if (nextPart && nextPart.id !== activePartId) {
+      setActivePartId(nextPart.id);
+    }
+  }, [activePartId, activePartNo, paper]);
   const currentIsWriting = paper.module === "writing";
   const currentSubmitted = currentPart
     ? Boolean(submittedParts[currentPart.id])
@@ -547,6 +753,14 @@ export default function ListeningPracticePanel({
       ? new Map(options.map((option) => [getOptionLabel(option), option] as const))
       : null;
   }, [currentPart]);
+  const firstSingleChoiceGroupId = useMemo(() => {
+    if (!currentPart) return null;
+
+    return (
+      currentPart.groups.find((group) => group.questionType === "single_choice")
+        ?.id ?? null
+    );
+  }, [currentPart]);
 
   const totalQuestions = currentPartQuestions.length;
   const correctCount = currentSubmitted
@@ -571,21 +785,27 @@ export default function ListeningPracticePanel({
               {moduleLabel}
             </p> */}
             <div className="flex flex-wrap items-center justify-center gap-2">
-              {paper.parts.map((part) => {
-                const active = part.id === currentPart?.id;
+              {expectedPartNos.map((partNo) => {
+                const active = partNo === selectedPartNo;
+                const part = paper.parts.find((item) => item.partNo === partNo);
 
                 return (
                   <button
-                    key={part.id}
+                    key={partNo}
                     type="button"
-                    onClick={() => setActivePartId(part.id)}
+                    onClick={() => {
+                      if (part) {
+                        setActivePartId(part.id);
+                      }
+                      onPartChange?.(partNo);
+                    }}
                     className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
                       active
                         ? "bg-slate-900 text-white"
                         : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
                     }`}
                   >
-                    Part {part.partNo}
+                    Part {partNo}
                   </button>
                 );
               })}
@@ -627,7 +847,7 @@ export default function ListeningPracticePanel({
                 <h3 className="mt-2 text-2xl font-bold text-slate-900">
                   {currentPart.title}
                 </h3>
-                {currentPart.instructionHtml ? (
+                {hasRenderableHtmlContent(currentPart.instructionHtml) ? (
                   <div className="mt-2">
                     <HtmlBlock
                       html={currentPart.instructionHtml}
@@ -654,7 +874,7 @@ export default function ListeningPracticePanel({
               </div>
             ) : null}
 
-            {currentPart.contentHtml ? (
+            {hasRenderableHtmlContent(currentPart.contentHtml) ? (
               <HtmlBlock
                 html={currentPart.contentHtml}
                 answers={answers}
@@ -688,7 +908,7 @@ export default function ListeningPracticePanel({
               currentPart.groups.map((group) => (
                 <article
                   key={group.id}
-                  className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-[0_8px_20px_rgba(15,23,42,0.04)]"
+                  className="rounded-[1.5rem] bg-white p-3 shadow-[0_8px_20px_rgba(15,23,42,0.04)]"
                 >
                   {(() => {
                     const questionsByNo = new Map(
@@ -702,9 +922,26 @@ export default function ListeningPracticePanel({
                     const isMatchingHeadings =
                       group.questionType === "matching_headings" &&
                       Boolean(group.contentHtml);
-                    const isDragMatching =
-                      group.questionType === "matching" ||
+                    const isMatchingToMain =
+                      group.questionType === "matching_to_main" &&
+                      Boolean(group.contentHtml || group.instructionHtml);
+                    const isMapLabeling =
                       group.questionType === "map_labeling";
+                    const isTableOptions =
+                      group.questionType === "table_options";
+                    const showGroupHtml =
+                      group.questionType !== "single_choice" ||
+                      group.id === firstSingleChoiceGroupId;
+                    const isDragMatching = group.questionType === "matching";
+                    const dragOptionsByLabel =
+                      isMatchingToMain && group.sharedOptions.length > 0
+                        ? new Map(
+                            group.sharedOptions.map((option) => [
+                              getOptionLabel(option),
+                              option,
+                            ] as const),
+                          )
+                        : null;
                     const groupedMultipleChoice =
                       group.questionType === "multiple_choice" &&
                       group.questions.length > 1 &&
@@ -725,12 +962,17 @@ export default function ListeningPracticePanel({
                           ) : null}
                         </div> */}
 
-                          {group.instructionHtml ? (
+                          {showGroupHtml &&
+                          hasRenderableHtmlContent(group.instructionHtml) ? (
                             <HtmlBlock
                               html={group.instructionHtml}
                               questionsByNo={
                                 inlineFillBlank ? questionsByNo : null
                               }
+                              dragQuestionsByNo={
+                                isMatchingToMain ? questionsByNo : null
+                              }
+                              dragOptionsByLabel={dragOptionsByLabel}
                               answers={answers}
                               submitted={currentSubmitted}
                               onAnswerChange={updateAnswer}
@@ -745,8 +987,11 @@ export default function ListeningPracticePanel({
                               />
                             </div>
                           ) : null}
-                          {group.contentHtml &&
+                          {showGroupHtml &&
+                          hasRenderableHtmlContent(group.contentHtml) &&
                           !isMatchingHeadings &&
+                          !isMapLabeling &&
+                          !isTableOptions &&
                           NeedHideHTML !== group.contentHtml ? (
                             <div className="">
                               <HtmlBlock
@@ -754,6 +999,10 @@ export default function ListeningPracticePanel({
                                 questionsByNo={
                                   inlineFillBlank ? questionsByNo : null
                                 }
+                                dragQuestionsByNo={
+                                  isMatchingToMain ? questionsByNo : null
+                                }
+                                dragOptionsByLabel={dragOptionsByLabel}
                                 headingQuestionsByNo={null}
                                 answers={answers}
                                 submitted={currentSubmitted}
@@ -778,7 +1027,7 @@ export default function ListeningPracticePanel({
                         </div>
 
                         {!inlineFillBlank ? (
-                          <div className="mt-5 space-y-3">
+                          <div className="mt-2 space-y-3">
                             {isMatchingHeadings ? (
                               <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
                                 {/* <div className="rounded-2xl border border-slate-200 bg-white p-4"> */}
@@ -814,6 +1063,33 @@ export default function ListeningPracticePanel({
                                 {/* <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
                                   将右侧标题拖拽到上方阅读正文中对应题号的位置。
                                 </div> */}
+                              </div>
+                            ) : isMatchingToMain ? (
+                              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                                <div className="mt-3 space-y-2">
+                                  {group.sharedOptions.map((option) => (
+                                    <div
+                                      key={option.id}
+                                      draggable
+                                      onDragStart={(event) => {
+                                        event.dataTransfer.setData(
+                                          "text/plain",
+                                          getOptionLabel(option),
+                                        );
+                                        event.dataTransfer.effectAllowed =
+                                          "move";
+                                      }}
+                                      className="cursor-grab rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 active:cursor-grabbing"
+                                    >
+                                      {option.label ? (
+                                        <span className="mr-2 font-semibold text-slate-900">
+                                          {option.label}.
+                                        </span>
+                                      ) : null}
+                                      <span>{option.text}</span>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             ) : isDragMatching ? (
                               <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
@@ -940,9 +1216,9 @@ export default function ListeningPracticePanel({
                                 </div>
 
                                 <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                  {/* <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                                     Options
-                                  </p>
+                                  </p> */}
                                   <div className="mt-3 space-y-2">
                                     {group.sharedOptions.map((option) => (
                                       <div
@@ -968,6 +1244,126 @@ export default function ListeningPracticePanel({
                                     ))}
                                   </div>
                                 </div>
+                              </div>
+                            ) : isMapLabeling || isTableOptions ? (
+                              <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+                                <table className="min-w-full table-fixed border-collapse text-sm">
+                                  <colgroup>
+                                    <col className="w-[40%] min-w-[20rem]" />
+                                    {group.sharedOptions.map((option) => (
+                                      <col key={`col-${option.id}`} className="w-[10%]" />
+                                    ))}
+                                  </colgroup>
+                                  <thead>
+                                    <tr className="bg-slate-50">
+                                      <th className="min-w-80 px-4 py-3 text-left font-semibold text-slate-900">
+                                        Question
+                                      </th>
+                                      {group.sharedOptions.map((option) => (
+                                        <th
+                                          key={option.id}
+                                          className="min-w-16 px-2 py-3 text-center font-semibold text-slate-700"
+                                        >
+                                          {getOptionLabel(option)}
+                                        </th>
+                                      ))}
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {group.questions.map((question) => {
+                                      const answer = answers[question.id];
+                                      const selectedLabel =
+                                        typeof answer === "string" ? answer : "";
+                                      const correct = currentSubmitted
+                                        ? isCorrectAnswer(
+                                            answer,
+                                            question.answerText,
+                                            question.answerJson,
+                                          )
+                                        : null;
+                                      const acceptedAnswers = parseAnswerValues(
+                                        question.answerText,
+                                        question.answerJson,
+                                      );
+
+                                      return (
+                                        <tr
+                                          key={question.id}
+                                          className="border-t border-slate-200"
+                                        >
+                                          <td className="px-4 py-4 align-top text-slate-700">
+                                            <div className="space-y-2">
+                                              <div className="font-medium leading-6 text-slate-900">
+                                                {stripHtml(question.stem) ||
+                                                  stripHtml(group.title)}
+                                              </div>
+                                              {currentSubmitted &&
+                                              acceptedAnswers.length > 0 ? (
+                                                <div className="text-xs text-slate-500">
+                                                  正确答案:{" "}
+                                                  <span className="font-semibold text-slate-900">
+                                                    {acceptedAnswers[0]}
+                                                  </span>
+                                                </div>
+                                              ) : null}
+                                            </div>
+                                          </td>
+                                          {group.sharedOptions.map((option) => {
+                                            const optionLabel =
+                                              getOptionLabel(option);
+                                            const selected =
+                                              selectedLabel === optionLabel;
+                                            const optionIsCorrect =
+                                              isCorrectAnswer(
+                                                optionLabel,
+                                                question.answerText,
+                                                question.answerJson,
+                                              );
+                                            const cellClass = currentSubmitted
+                                              ? selected && correct
+                                                ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                                                : selected && !correct
+                                                  ? "border-rose-300 bg-rose-50 text-rose-700"
+                                                  : optionIsCorrect
+                                                    ? "border-emerald-200 bg-emerald-50/60 text-emerald-700"
+                                                    : "border-slate-200 bg-white text-slate-300"
+                                              : selected
+                                                ? "border-blue-300 bg-blue-50 text-blue-700"
+                                                : "border-slate-200 bg-white text-slate-300 hover:border-slate-300 hover:bg-slate-50";
+
+                                            return (
+                                              <td
+                                                key={`${question.id}-${option.id}`}
+                                                className="px-1.5 py-2 text-center"
+                                              >
+                                                <button
+                                                  type="button"
+                                                  onClick={() =>
+                                                    updateAnswer(
+                                                      question.id,
+                                                      selected
+                                                        ? ""
+                                                        : optionLabel,
+                                                    )
+                                                  }
+                                                  className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border transition-colors ${cellClass}`}
+                                                  aria-label={`Question ${question.questionNo} choose ${optionLabel}`}
+                                                >
+                                                  {selected ? (
+                                                    <Check className="h-4 w-4" />
+                                                  ) : currentSubmitted &&
+                                                    optionIsCorrect ? (
+                                                    <Check className="h-4 w-4 opacity-60" />
+                                                  ) : null}
+                                                </button>
+                                              </td>
+                                            );
+                                          })}
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
                               </div>
                             ) : groupedMultipleChoice ? (
                               (() => {

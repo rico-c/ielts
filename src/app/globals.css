@@ -95,10 +95,21 @@ body {
   table-layout: fixed;
 }
 
+.ielts-richtext {
+  line-height: 2.1;
+}
+
+.ielts-richtext p,
+.ielts-richtext li,
+.ielts-richtext td,
+.ielts-richtext th {
+  line-height: 2.1;
+}
+
 .ielts-richtext th,
 .ielts-richtext td {
   border: 1px solid rgba(148, 163, 184, 0.8) !important;
-  padding: 0.5rem 0.75rem;
+  padding: 4px !important;
   vertical-align: top;
 }
 

@@ -119,7 +119,15 @@ function inferQuestionType(rawType, rawRealType, module) {
   if (realType === "10") return "multiple_choice";
 
   // MANUAL
+  if (type === "4") return "table_options";
   if (type === "14") return "fill_blank";
+  if (type === "15") return "fill_blank";
+  if (type === "17") return "fill_blank";
+  if (type === "18") return "matching";
+  if (type === "20") return "matching";
+  if (type === "22") return "matching";
+  if (type === "28") return "table_options";
+  if (type === "29") return "matching_to_main";  // 选项拖拽到 题目中的空
   return "unknown";
 }
 
