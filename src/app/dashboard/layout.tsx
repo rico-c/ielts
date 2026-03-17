@@ -144,15 +144,15 @@ export default function DashboardLayout({
         {!collapsed ? (
           <div className="px-4 pb-2">
             <div className="overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4 shadow-sm">
-              <h3 className="font-bold text-gray-900">IELTS Workspace</h3>
+              <h3 className="font-bold text-gray-900">优秀雅思PRO</h3>
               <p className="mt-1 text-xs leading-5 text-slate-600">
-                dashboard 的结构现在贴近 `pte`，后面可以继续往里面接练习记录、批改结果和会员模块。
+                AI评分 & 全真口语模考 & 超多权益等你探索
               </p>
               <Link
                 href="/dashboard/voice"
                 className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-white bg-white/80 px-4 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-white"
               >
-                打开 Voice Lab
+                查看价格
               </Link>
             </div>
           </div>
@@ -161,7 +161,6 @@ export default function DashboardLayout({
         <div className={`transition-all duration-300 ${collapsed ? "px-2 py-4" : "p-4"}`}>
           <div className={`flex items-center rounded-xl px-3 py-2 hover:bg-slate-50 ${collapsed ? "justify-center" : "gap-3"}`}>
             <UserButton />
-            {collapsed ? null : <div className="text-sm text-slate-600">账号中心</div>}
           </div>
         </div>
       </aside>
