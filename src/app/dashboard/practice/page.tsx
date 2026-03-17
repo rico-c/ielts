@@ -187,8 +187,8 @@ function DashboardPracticeContent() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <div className="flex flex-1 flex-wrap items-center gap-4">
+        <div className="flex flex-col gap-4 px-4 py-4 sm:px-6">
+          <div className="flex flex-wrap items-center gap-4">
             <div className="flex flex-wrap gap-2">
               {MODULES.map((module) => {
                 const active = module.id === activeModule;
@@ -219,13 +219,11 @@ function DashboardPracticeContent() {
                 );
               })}
             </div>
+          </div>
 
-            <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
-              {TEST_NUMBERS.length > 0 ? (
-                <div className=" w-0.5 text-sm bg-neutral-300 mr-2">
-                </div>
-              ) : null}
+          <div className="flex flex-wrap items-center gap-2">
 
+            <div className="flex flex-wrap justify-start gap-2">
               {TEST_NUMBERS.map((testNo) => {
                 const active = testNo === activeTestNo;
 

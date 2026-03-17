@@ -924,12 +924,6 @@ export default function ListeningPracticePanel({
       <div className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm sm:p-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="mb-2 text-2xl font-extrabold tracking-tight text-slate-900">
-              {paper.title} · Test {paper.testNo} · {moduleLabel}
-            </h2>
-            {/* <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-700">
-              {moduleLabel}
-            </p> */}
             <div className="flex flex-wrap items-center justify-center gap-2">
               {expectedPartNos.map((partNo) => {
                 const active = partNo === selectedPartNo;
@@ -958,12 +952,15 @@ export default function ListeningPracticePanel({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-4">
             {currentSubmitted && !currentIsWriting ? (
               <div className="rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700">
                 得分 {correctCount} / {totalQuestions}
               </div>
             ) : null}
+            <h2 className="text-xl font-extrabold tracking-tight text-slate-900">
+              {paper.title} · Test {paper.testNo} · {moduleLabel}
+            </h2>
             <button
               type="button"
               onClick={() => {

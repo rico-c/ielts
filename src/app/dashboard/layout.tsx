@@ -18,7 +18,7 @@ import type { LucideIcon } from "lucide-react";
 const menuItems = [
   { href: "/dashboard", label: "概览", icon: LayoutDashboard },
   { href: "/dashboard/practice", label: "剑雅真题", icon: BookOpen },
-  { href: "/dashboard/voice", label: "模拟考试", icon: Mic },
+  { href: "/dashboard/voice", label: "口语模考", icon: Mic },
 ];
 
 function SidebarIcon({
