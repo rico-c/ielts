@@ -338,6 +338,98 @@ export default async function Home() {
           </section>
         </div>
       </main>
+
+      <footer className="border-t border-gray-100 bg-gray-50 pt-16 pb-8">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-12 grid gap-8 md:grid-cols-4">
+            <div>
+              <Image
+                src="/logo.png"
+                alt="优秀IELTS"
+                width={120}
+                height={30}
+                className="mb-6 opacity-80"
+                unoptimized
+              />
+              <p className="text-sm leading-relaxed text-gray-500">
+                优秀IELTS 聚合 AI 口语模拟、剑雅真题练习与个人备考工作台，
+                帮你把听说读写训练放进同一套高频复盘流程。
+              </p>
+            </div>
+
+            <div>
+              <h4 className="mb-4 font-semibold text-gray-900">产品</h4>
+              <ul className="space-y-2 text-sm text-gray-500">
+                <li>
+                  <Link href="/dashboard/practice" className="hover:text-blue-600">
+                    真题练习
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/dashboard/voice" className="hover:text-blue-600">
+                    AI 口语对练
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/dashboard" className="hover:text-blue-600">
+                    个人备考平台
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="mb-4 font-semibold text-gray-900">资源</h4>
+              <ul className="space-y-2 text-sm text-gray-500">
+                <li>
+                  <a href="#features" className="hover:text-blue-600">
+                    平台功能
+                  </a>
+                </li>
+                <li>
+                  <a href="#practice" className="hover:text-blue-600">
+                    训练路径
+                  </a>
+                </li>
+                <li>
+                  <a href="#questions" className="hover:text-blue-600">
+                    真题入口
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="mb-4 font-semibold text-gray-900">联系</h4>
+              <ul className="space-y-2 text-sm text-gray-500">
+                <li>official@youshowedu.com</li>
+                <li>Mon - Sun / 10:00 - 22:00</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="mb-8 border-t border-gray-200 pt-8">
+            <h4 className="mb-4 text-center text-sm font-semibold text-gray-500">
+              友情链接
+            </h4>
+          </div>
+
+          <div className="border-t border-gray-200 pt-8">
+            <div className="flex flex-col items-center justify-center gap-4 text-sm text-gray-400 md:flex-row">
+              <p>© 2026 优秀IELTS. All rights reserved.</p>
+              <p>Youshow Education PTY LTD</p>
+              <div className="flex gap-4">
+                <Link href="/terms" className="transition-colors hover:text-gray-600">
+                  服务条款
+                </Link>
+                <Link href="/privacy" className="transition-colors hover:text-gray-600">
+                  隐私政策
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
