@@ -1,6 +1,13 @@
 "use client";
 
-import { ChevronDown, Pause, Play, RotateCcw, RotateCw } from "lucide-react";
+import {
+  ChevronDown,
+  LoaderCircle,
+  Pause,
+  Play,
+  RotateCcw,
+  RotateCw,
+} from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 
 const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -29,6 +36,7 @@ export default function ListeningAudioPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isAudioLoading, setIsAudioLoading] = useState(true);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -36,6 +44,13 @@ export default function ListeningAudioPlayer({
 
     audio.playbackRate = playbackRate;
   }, [playbackRate]);
+
+  useEffect(() => {
+    setDuration(0);
+    setCurrentTime(0);
+    setIsPlaying(false);
+    setIsAudioLoading(true);
+  }, [src]);
 
   async function togglePlayback() {
     const audio = audioRef.current;
@@ -72,37 +87,46 @@ export default function ListeningAudioPlayer({
       <audio
         ref={audioRef}
         preload="metadata"
+        onLoadStart={() => setIsAudioLoading(true)}
         onLoadedMetadata={(event) => {
           const nextDuration = event.currentTarget.duration;
           setDuration(Number.isFinite(nextDuration) ? nextDuration : 0);
+          setIsAudioLoading(false);
         }}
+        onCanPlay={() => setIsAudioLoading(false)}
         onTimeUpdate={(event) => {
           setCurrentTime(event.currentTarget.currentTime);
         }}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         onEnded={() => setIsPlaying(false)}
+        onError={() => setIsAudioLoading(false)}
       >
         <source src={src} />
       </audio>
 
-      <div className="flex items-center justify-between gap-3">
+      {/* <div className="flex items-center justify-between gap-3">
         <p className="truncate text-sm font-semibold text-slate-900">{title || "Listening Audio"}</p>
         <div className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
           {playbackRate}x
         </div>
-      </div>
+      </div> */}
 
-      <div className="mt-3 flex flex-wrap items-center gap-2.5">
+      <div className="mt-0 flex flex-wrap items-center gap-2.5">
         <button
           type="button"
           onClick={() => {
             void togglePlayback();
           }}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-white transition-transform hover:scale-[1.02]"
+          className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-900 text-white transition-transform hover:scale-[1.02]"
           aria-label={isPlaying ? "Pause audio" : "Play audio"}
         >
-          {isPlaying ? (
+          {isAudioLoading ? (
+            <LoaderCircle
+              className="h-[18px] w-[18px] animate-spin"
+              strokeWidth={2.4}
+            />
+          ) : isPlaying ? (
             <Pause className="h-[18px] w-[18px]" strokeWidth={2.4} />
           ) : (
             <Play className="ml-0.5 h-[18px] w-[18px]" strokeWidth={2.4} />

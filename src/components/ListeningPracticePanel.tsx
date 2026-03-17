@@ -782,10 +782,12 @@ export default function ListeningPracticePanel({
   paper,
   activePartNo,
   onPartChange,
+  hideHeaderSummary = false,
 }: {
   paper: ListeningPracticePaper;
   activePartNo?: number;
   onPartChange?: (partNo: number) => void;
+  hideHeaderSummary?: boolean;
 }) {
   const expectedPartNos =
     paper.module === "writing"
@@ -921,7 +923,7 @@ export default function ListeningPracticePanel({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-[2rem] border border-[var(--line)] bg-white p-6 shadow-sm sm:p-8">
+      <div className="rounded-[2rem] border border-[var(--line)] bg-white px-6 py-4 shadow-sm ">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="flex flex-wrap items-center justify-center gap-2">
@@ -958,9 +960,11 @@ export default function ListeningPracticePanel({
                 得分 {correctCount} / {totalQuestions}
               </div>
             ) : null}
-            <h2 className="text-xl font-extrabold tracking-tight text-slate-900">
-              {paper.title} · Test {paper.testNo} · {moduleLabel}
-            </h2>
+            {!hideHeaderSummary ? (
+              <h2 className="text-xl font-extrabold tracking-tight text-slate-900">
+                {paper.title} · Test {paper.testNo} · {moduleLabel}
+              </h2>
+            ) : null}
             <button
               type="button"
               onClick={() => {
@@ -987,9 +991,9 @@ export default function ListeningPracticePanel({
           <div className=" px-6 py-4 sm:px-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="mt-2 text-2xl font-bold text-slate-900">
+                {/* <h3 className="mt-2 text-2xl font-bold text-slate-900">
                   {currentPart.title}
-                </h3>
+                </h3> */}
                 {hasRenderableHtmlContent(currentPart.instructionHtml) ? (
                   <div className="mt-2">
                     <HtmlBlock
@@ -1001,11 +1005,11 @@ export default function ListeningPracticePanel({
                   </div>
                 ) : null}
               </div>
-              {currentPart.audioUrl ? (
+              {/* {currentPart.audioUrl ? (
                 <div className="text-xs font-medium text-slate-500">
                   Audio ready
                 </div>
-              ) : null}
+              ) : null} */}
             </div>
 
             {currentPart.audioUrl ? (

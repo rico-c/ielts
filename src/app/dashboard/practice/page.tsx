@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { ChevronDown, ChevronUp, LoaderCircle } from "lucide-react";
 import ListeningPracticePanel from "@/components/ListeningPracticePanel";
 import type { ListeningPracticePaper } from "@/lib/ielts-db";
 
@@ -46,6 +47,10 @@ function getExpectedPartNos(module: ModuleId) {
   return [1, 2, 3, 4];
 }
 
+function formatModuleLabel(module: ModuleId) {
+  return module.charAt(0).toUpperCase() + module.slice(1);
+}
+
 function DashboardPracticeContent() {
   const router = useRouter();
   const pathname = usePathname();
@@ -62,9 +67,11 @@ function DashboardPracticeContent() {
   const [activePartNo, setActivePartNo] = useState<number | undefined>(() =>
     parsePositiveNumber(searchParams.get("part")),
   );
+  const [isSelectorCollapsed, setIsSelectorCollapsed] = useState(false);
   const [practiceState, setPracticeState] = useState<PracticeState>("idle");
   const [practicePaper, setPracticePaper] =
     useState<ListeningPracticePaper | null>(null);
+  const collapsedSummary = `IELTS${activeBookNo}${typeof activeTestNo === "number" ? ` · Test ${activeTestNo}` : ""} · ${formatModuleLabel(activeModule)}`;
 
   const practiceApiUrl = useMemo(() => {
     if (typeof activeTestNo !== "number") return "";
@@ -151,104 +158,138 @@ function DashboardPracticeContent() {
   return (
     <section className="space-y-6">
       <div className="overflow-hidden rounded-[2rem] border border-[var(--line)] bg-white shadow-sm">
-        <div className="border-b border-[var(--line)] bg-[linear-gradient(135deg,rgba(239,246,255,0.95),rgba(255,255,255,0.98))] px-6 py-6 sm:px-8">
-          <div className="flex items-center gap-5 lg:flex-row lg:items-start">
+        <div
+          className={`border-b border-[var(--line)] bg-[linear-gradient(135deg,rgba(239,246,255,0.95),rgba(255,255,255,0.98))] px-6 py-4 ${
+            isSelectorCollapsed ? "cursor-pointer" : ""
+          }`}
+          onClick={() => {
+            if (isSelectorCollapsed) {
+              setIsSelectorCollapsed(false);
+            }
+          }}
+        >
+          <div className="flex items-center gap-5 justify-between">
             {/* <div className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-blue-700">
                 Cambridge IELTS
               </div> */}
-            <h1 className=" text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
+            {/* <h1 className=" text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
               剑雅真题
-            </h1>
+            </h1> */}
+            {isSelectorCollapsed ? (
+              <h2 className="text-xl font-extrabold tracking-tight text-slate-900">
+                {collapsedSummary}
+              </h2>
+            ) : (
+              <div className="flex items-center flex-wrap justify-start gap-2">
+                {BOOK_NUMBERS.map((bookNo) => {
+                  const active = bookNo === activeBookNo;
 
-            <div className="flex items-center flex-wrap justify-start gap-2 lg:max-w-[60%] lg:justify-end">
-              {BOOK_NUMBERS.map((bookNo) => {
-                const active = bookNo === activeBookNo;
-
-                return (
-                  <button
-                    key={bookNo}
-                    type="button"
-                    onClick={() => {
-                      setActiveBookNo(bookNo);
-                      setActiveTestNo(1);
-                      setActivePartNo(undefined);
-                    }}
-                    className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                      active
-                        ? "bg-slate-900 text-white shadow-[0_12px_28px_rgba(15,23,42,0.18)]"
-                        : "border border-[var(--line)] bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
-                    }`}
-                  >
-                    剑{bookNo}
-                  </button>
-                );
-              })}
-            </div>
+                  return (
+                    <button
+                      key={bookNo}
+                      type="button"
+                      onClick={() => {
+                        setActiveBookNo(bookNo);
+                        setActiveTestNo(1);
+                        setActivePartNo(undefined);
+                      }}
+                      className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                        active
+                          ? "bg-slate-900 text-white shadow-[0_12px_28px_rgba(15,23,42,0.18)]"
+                          : "border border-[var(--line)] bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                      }`}
+                    >
+                      剑{bookNo}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                setIsSelectorCollapsed((current) => !current);
+              }}
+              className="inline-flex items-center gap-1 rounded-full bg-transparent px-1 py-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900"
+            >
+              {isSelectorCollapsed ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronUp className="h-4 w-4" />
+              )}
+              <span>{isSelectorCollapsed ? "展开" : "收起"}</span>
+            </button>
           </div>
         </div>
 
-        <div className="flex flex-col gap-4 px-4 py-4 sm:px-6">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex flex-wrap gap-2">
-              {MODULES.map((module) => {
-                const active = module.id === activeModule;
+        <div
+          className={`grid overflow-hidden transition-all duration-300 ease-out ${
+            isSelectorCollapsed ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100"
+          }`}
+        >
+          <div className="min-h-0">
+            <div className="flex flex-col gap-4 px-4 py-4 sm:px-6">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex flex-wrap gap-2">
+                  {MODULES.map((module) => {
+                    const active = module.id === activeModule;
 
-                return (
-                  <button
-                    key={module.id}
-                    type="button"
-                    onClick={() => {
-                      if (module.enabled) {
-                        setActiveModule(module.id);
-                        setActiveTestNo(1);
-                        setActivePartNo(undefined);
-                      }
-                    }}
-                    disabled={!module.enabled}
-                    className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                      active
-                        ? "bg-blue-600 text-white"
-                        : module.enabled
-                          ? "border border-[var(--line)] bg-blue-50/60 text-blue-700 hover:bg-blue-100"
-                          : "cursor-not-allowed border border-dashed border-slate-200 bg-slate-50 text-slate-400"
-                    }`}
-                  >
-                    {module.label}
-                    {!module.enabled ? " · 当季题库" : ""}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+                    return (
+                      <button
+                        key={module.id}
+                        type="button"
+                        onClick={() => {
+                          if (module.enabled) {
+                            setActiveModule(module.id);
+                            setActiveTestNo(1);
+                            setActivePartNo(undefined);
+                          }
+                        }}
+                        disabled={!module.enabled}
+                        className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                          active
+                            ? "bg-slate-900 text-white"
+                            : module.enabled
+                              ? "border border-[var(--line)] bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                              : "cursor-not-allowed border border-dashed border-slate-200 bg-slate-50 text-slate-400"
+                        }`}
+                      >
+                        {module.label}
+                        {!module.enabled ? " · 当季题库" : ""}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap justify-start gap-2">
+                  {TEST_NUMBERS.map((testNo) => {
+                    const active = testNo === activeTestNo;
 
-            <div className="flex flex-wrap justify-start gap-2">
-              {TEST_NUMBERS.map((testNo) => {
-                const active = testNo === activeTestNo;
+                    return (
+                      <button
+                        key={testNo}
+                        type="button"
+                        onClick={() => {
+                          setActiveTestNo(testNo);
+                          setActivePartNo(undefined);
+                        }}
+                        className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                          active
+                            ? "bg-slate-900 text-white"
+                            : "border border-[var(--line)] bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                        }`}
+                      >
+                        Test {testNo}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-                return (
-                  <button
-                    key={testNo}
-                    type="button"
-                    onClick={() => {
-                      setActiveTestNo(testNo);
-                      setActivePartNo(undefined);
-                    }}
-                    className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                      active
-                        ? "bg-emerald-600 text-white"
-                        : "border border-[var(--line)] bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
-                    }`}
-                  >
-                    Test {testNo}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* <div className="rounded-2xl border border-[var(--line)] bg-[rgba(248,250,252,0.9)] px-4 py-3 text-sm text-slate-600">
+              {/* <div className="rounded-2xl border border-[var(--line)] bg-[rgba(248,250,252,0.9)] px-4 py-3 text-sm text-slate-600">
             当前查看:{" "}
             <span className="font-semibold text-slate-900">
               剑{activeBookNo}
@@ -266,12 +307,17 @@ function DashboardPracticeContent() {
               </>
             ) : null}
           </div> */}
+            </div>
+          </div>
         </div>
       </div>
 
       {practiceState === "loading" ? (
         <div className="rounded-[2rem] border border-[var(--line)] bg-white px-6 py-10 text-center text-sm text-slate-500 shadow-sm">
-          正在加载题目内容...
+          <div className="flex items-center justify-center gap-2">
+            <LoaderCircle className="h-4 w-4 animate-spin" />
+            <span>正在加载题目内容...</span>
+          </div>
         </div>
       ) : null}
 
@@ -286,6 +332,7 @@ function DashboardPracticeContent() {
           paper={practicePaper}
           activePartNo={activePartNo}
           onPartChange={setActivePartNo}
+          hideHeaderSummary={isSelectorCollapsed}
         />
       ) : null}
     </section>
