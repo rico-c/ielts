@@ -94,7 +94,7 @@ export default function DashboardPage() {
             保留当前语音助教能力，但放到和 PTE dashboard 一致的卡片容器和页面层次里。
           </p>
         </div>
-        <ElevenLabsVoiceAssistant agentId={agentId} />
+        {/* <ElevenLabsVoiceAssistant agentId={agentId} /> */}
       </section>
 
       <section id="latest-tests" className="rounded-[1.75rem] border border-gray-100 bg-white p-2 shadow-sm sm:p-4">

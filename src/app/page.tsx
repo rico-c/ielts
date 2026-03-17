@@ -312,7 +312,7 @@ export default async function Home() {
                       Live
                     </span>
                   </div>
-                  <ElevenLabsVoiceAssistant agentId={agentId} />
+                  {/* <ElevenLabsVoiceAssistant agentId={agentId} /> */}
                 </section>
               </div>
             </div>
