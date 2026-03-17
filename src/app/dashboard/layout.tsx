@@ -5,8 +5,10 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
+  FileText,
   LayoutDashboard,
   Mic,
+  NotebookPen,
   X,
 } from "lucide-react";
 import Image from "next/image";
@@ -18,7 +20,9 @@ import type { LucideIcon } from "lucide-react";
 const menuItems = [
   { href: "/dashboard", label: "概览", icon: LayoutDashboard },
   { href: "/dashboard/practice", label: "剑雅真题", icon: BookOpen },
-  { href: "/dashboard/voice", label: "口语模考", icon: Mic },
+  { href: "/dashboard/word-review", label: "单词复习", icon: NotebookPen },
+  { href: "/dashboard/materials", label: "独家资料", icon: FileText },
+  // { href: "/dashboard/voice", label: "口语模考", icon: Mic },
 ];
 
 function SidebarIcon({
