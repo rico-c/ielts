@@ -1130,8 +1130,9 @@ export default function ListeningPracticePanel({
                           ) : null}
                           {group.imageUrl ? (
                             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                              {/* 'http://uimg.gximg.cn/ieltscb' +  */}
                               <img
-                                src={'http://uimg.gximg.cn/ieltscb' + group.imageUrl}
+                                src={group.imageUrl}
                                 alt={group.title || "Question illustration"}
                                 className="h-auto w-[500px] object-contain"
                               />
