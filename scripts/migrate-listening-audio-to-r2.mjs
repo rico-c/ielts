@@ -16,7 +16,7 @@ const CONFIG = {
   bucket: "ielts",
   remote: true,
   dryRun: false,
-  onlyEmptyTestField: true,
+  onlyCatTestField: true,
   publicBaseUrl: "https://ieltsfile.youshowedu.com",
   objectPrefix: "audio",
 };
@@ -60,7 +60,7 @@ function parseArgs(argv) {
     else if (arg === "--remote") options.remote = true;
     else if (arg === "--local") options.remote = false;
     else if (arg === "--dry-run") options.dryRun = true;
-    else if (arg === "--all") options.onlyEmptyTestField = false;
+    else if (arg === "--all") options.onlyCatTestField = false;
     else if (arg === "--help" || arg === "-h") {
       console.log(`Usage:
   node scripts/migrate-listening-audio-to-r2.mjs [--db ielts] [--bucket ielts] [--public-base-url https://cdn.example.com]
@@ -71,7 +71,7 @@ Examples:
   node scripts/migrate-listening-audio-to-r2.mjs --public-base-url https://pub-xxxx.r2.dev --remote
 
 Notes:
-  1. By default the script only processes listening rows where paper_parts.test is empty.
+  1. By default the script only processes listening rows where paper_parts.test contains "cat".
   2. Uploaded objects use the key pattern: audio/<paper_part_id>.<ext>
 `);
       process.exit(0);
@@ -123,16 +123,17 @@ function extractRowsFromD1Json(raw) {
 async function fetchListeningRows(options) {
   const where = [
     `module = 'listening'`,
-    `audio_url IS NOT NULL`,
-    `TRIM(audio_url) <> ''`,
+    `test IS NOT NULL`,
+    `TRIM(test) <> ''`,
+    `(audio_url IS NULL OR TRIM(audio_url) = '')`,
   ];
 
-  if (options.onlyEmptyTestField) {
-    where.push(`(test IS NULL OR TRIM(test) = '')`);
+  if (options.onlyCatTestField) {
+    where.push(`LOWER(test) LIKE '%cat%'`);
   }
 
   const sql = `
-    SELECT id, audio_url
+    SELECT id, test
     FROM paper_parts
     WHERE ${where.join(" AND ")}
     ORDER BY sort_order ASC, part_no ASC
@@ -152,12 +153,12 @@ async function fetchListeningRows(options) {
   );
 
   return extractRowsFromD1Json(stdout).filter(
-    (row) => typeof row?.id === "string" && typeof row?.audio_url === "string",
+    (row) => typeof row?.id === "string" && typeof row?.test === "string",
   );
 }
 
-async function updateTestField(options, partId, finalUrl) {
-  const sql = `UPDATE paper_parts SET test = ${sqlQuote(finalUrl)} WHERE id = ${sqlQuote(partId)};`;
+async function updateAudioUrlField(options, partId, finalUrl) {
+  const sql = `UPDATE paper_parts SET audio_url = ${sqlQuote(finalUrl)} WHERE id = ${sqlQuote(partId)};`;
 
   await runWrangler(
     [
@@ -207,21 +208,22 @@ async function main() {
     const tmpDir = await mkdtemp(path.join(os.tmpdir(), "ielts-audio-migrate-"));
 
     try {
-      const response = await fetch(row.audio_url);
+      const sourceUrl = row.test;
+      const response = await fetch(sourceUrl);
       if (!response.ok) {
         throw new Error(`Failed to download audio for ${row.id}: ${response.status} ${response.statusText}`);
       }
 
-      const objectKey = buildObjectKey(row.id, row.audio_url);
+      const objectKey = buildObjectKey(row.id, sourceUrl);
       const filePath = path.join(tmpDir, path.basename(objectKey));
       const buffer = Buffer.from(await response.arrayBuffer());
-      const contentType = inferContentType(row.audio_url, response.headers.get("content-type"));
+      const contentType = inferContentType(sourceUrl, response.headers.get("content-type"));
       const finalUrl = `${baseUrl}${objectKey}`;
 
       await writeFile(filePath, buffer);
 
       console.log(`Processing ${row.id}`);
-      console.log(`  source: ${row.audio_url}`);
+      console.log(`  source: ${sourceUrl}`);
       console.log(`  target: ${finalUrl}`);
 
       if (options.dryRun) {
@@ -229,7 +231,7 @@ async function main() {
       }
 
       await uploadAudioObject(options, filePath, objectKey, contentType);
-      await updateTestField(options, row.id, finalUrl);
+      await updateAudioUrlField(options, row.id, finalUrl);
     } finally {
       await rm(tmpDir, { recursive: true, force: true });
     }
