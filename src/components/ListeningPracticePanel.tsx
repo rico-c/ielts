@@ -44,6 +44,19 @@ function hasRenderableHtmlContent(html: string | null) {
   return /<(img|audio|video|iframe|svg|table|hr|br)\b/i.test(html);
 }
 
+function normalizeGroupedMultipleChoicePrompt(value: string) {
+  return normalizeText(value)
+    .replace(/^\d+\s*-\s*\d+\s*/, "")
+    .replace(/^\d+\s*/, "")
+    .replace(/[.,;:!?]/g, "")
+    .trim();
+}
+
+function getHeadingSectionLabel(stem: string) {
+  const match = stripHtml(stem).match(/section\s+([a-z])/i);
+  return match ? match[1].toUpperCase() : null;
+}
+
 function parseAnswerValues(
   answerText: string | null,
   answerJson: string | null,
@@ -142,6 +155,10 @@ function parseStyleAttribute(style: string, tagName?: string) {
       acc[prop] = /^\d+(\.\d+)?$/.test(value) ? Number(value) : value;
       return acc;
     }, {});
+}
+
+function isSafeHtmlAttributeName(name: string) {
+  return /^[a-zA-Z_:][a-zA-Z0-9:._-]*$/.test(name);
 }
 
 function getInlineInputClasses(correct: boolean | null) {
@@ -358,6 +375,7 @@ function renderHtmlNode(
   dragQuestionsByNo: Map<number, ListeningQuestion> | null,
   dragOptionsByLabel: Map<string, { label: string; text: string }> | null,
   headingQuestionsByNo: Map<number, ListeningQuestion> | null,
+  headingQuestionsBySectionLabel: Map<string, ListeningQuestion> | null,
   headingOptionsByLabel: Map<string, { label: string; text: string }> | null,
   answers: Record<string, AnswerValue>,
   submitted: boolean,
@@ -490,9 +508,114 @@ function renderHtmlNode(
     }
   }
 
+  if (headingQuestionsBySectionLabel && ["p", "div", "span"].includes(tagName)) {
+    const sectionLabel = stripHtml(element.innerHTML);
+    const question =
+      sectionLabel.length === 1
+        ? headingQuestionsBySectionLabel.get(sectionLabel.toUpperCase()) ?? null
+        : null;
+
+    if (question) {
+      const answer = answers[question.id];
+      const selectedLabel = typeof answer === "string" ? answer : "";
+      const selectedOption =
+        selectedLabel && headingOptionsByLabel
+          ? headingOptionsByLabel.get(selectedLabel) ?? null
+          : null;
+      const acceptedAnswers = parseAnswerValues(
+        question.answerText,
+        question.answerJson,
+      );
+      const correct = submitted
+        ? isCorrectAnswer(answer, question.answerText, question.answerJson)
+        : null;
+
+      const headingProps: Record<string, unknown> = { key: `${key}-heading` };
+      for (const attr of Array.from(element.attributes)) {
+        if (!isSafeHtmlAttributeName(attr.name)) {
+          continue;
+        }
+
+        if (attr.name === "class") {
+          headingProps.className = attr.value;
+          continue;
+        }
+
+        if (attr.name === "style") {
+          headingProps.style = parseStyleAttribute(attr.value, tagName) as CSSProperties;
+          continue;
+        }
+
+        headingProps[attr.name] = attr.value;
+      }
+
+      return createElement(
+        "div",
+        { key, className: "space-y-3" },
+        createElement(tagName, headingProps, sectionLabel),
+        <span className="flex w-full flex-col gap-2 align-middle">
+          <span
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => {
+              event.preventDefault();
+              const droppedLabel = event.dataTransfer
+                .getData("text/plain")
+                .trim();
+              if (droppedLabel) onAnswerChange(question.id, droppedLabel);
+            }}
+            className={`flex min-h-10 w-full min-w-28 items-center rounded-2xl border-2 border-dashed px-4 py-2 text-sm transition-colors ${
+              submitted
+                ? correct
+                  ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+                  : selectedLabel
+                    ? "border-rose-300 bg-rose-50 text-rose-900"
+                    : "border-slate-300 bg-white text-slate-400"
+                : selectedLabel
+                  ? "border-blue-300 bg-blue-50 text-slate-900"
+                  : "border-slate-300 bg-white text-slate-400"
+            }`}
+          >
+            {selectedOption ? (
+              <span className="flex items-center gap-3">
+                <span className="font-semibold text-slate-900">
+                  {question.questionNo}
+                </span>
+                <span>{selectedOption.text}</span>
+                <button
+                  type="button"
+                  onClick={() => onAnswerChange(question.id, "")}
+                  aria-label="Clear answer"
+                  className="rounded-full p-1 text-slate-400 transition-colors hover:bg-white hover:text-slate-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </span>
+            ) : (
+              <span className="font-semibold text-slate-900">
+                {question.questionNo}
+              </span>
+            )}
+          </span>
+          {submitted && acceptedAnswers.length > 0 ? (
+            <span className="text-xs text-slate-600">
+              正确答案:{" "}
+              <span className="font-semibold text-slate-900">
+                {acceptedAnswers[0]}
+              </span>
+            </span>
+          ) : null}
+        </span>,
+      );
+    }
+  }
+
   const props: Record<string, unknown> = { key };
 
   for (const attr of Array.from(element.attributes)) {
+    if (!isSafeHtmlAttributeName(attr.name)) {
+      continue;
+    }
+
     if (attr.name === "class") {
       props.className = attr.value;
       continue;
@@ -532,6 +655,7 @@ function renderHtmlNode(
       dragQuestionsByNo,
       dragOptionsByLabel,
       headingQuestionsByNo,
+      headingQuestionsBySectionLabel,
       headingOptionsByLabel,
       answers,
       submitted,
@@ -550,6 +674,7 @@ const HtmlBlock = memo(
     dragQuestionsByNo = null,
     dragOptionsByLabel = null,
     headingQuestionsByNo = null,
+    headingQuestionsBySectionLabel = null,
     headingOptionsByLabel = null,
     answers,
     submitted,
@@ -560,6 +685,7 @@ const HtmlBlock = memo(
     dragQuestionsByNo?: Map<number, ListeningQuestion> | null;
     dragOptionsByLabel?: Map<string, { label: string; text: string }> | null;
     headingQuestionsByNo?: Map<number, ListeningQuestion> | null;
+    headingQuestionsBySectionLabel?: Map<string, ListeningQuestion> | null;
     headingOptionsByLabel?: Map<string, { label: string; text: string }> | null;
     answers: Record<string, AnswerValue>;
     submitted: boolean;
@@ -579,7 +705,8 @@ const HtmlBlock = memo(
       !isMounted ||
       (!questionsByNo &&
         !dragQuestionsByNo &&
-        !headingQuestionsByNo)
+        !headingQuestionsByNo &&
+        !headingQuestionsBySectionLabel)
     ) {
       return (
         <div
@@ -598,6 +725,7 @@ const HtmlBlock = memo(
         dragQuestionsByNo,
         dragOptionsByLabel,
         headingQuestionsByNo,
+        headingQuestionsBySectionLabel,
         headingOptionsByLabel,
         answers,
         submitted,
@@ -621,6 +749,11 @@ const HtmlBlock = memo(
       return false;
     if (prevProps.headingQuestionsByNo !== nextProps.headingQuestionsByNo)
       return false;
+    if (
+      prevProps.headingQuestionsBySectionLabel !==
+      nextProps.headingQuestionsBySectionLabel
+    )
+      return false;
     if (prevProps.headingOptionsByLabel !== nextProps.headingOptionsByLabel)
       return false;
     if (prevProps.submitted !== nextProps.submitted) return false;
@@ -631,7 +764,9 @@ const HtmlBlock = memo(
       !prevProps.dragQuestionsByNo &&
       !nextProps.dragQuestionsByNo &&
       !prevProps.headingQuestionsByNo &&
-      !nextProps.headingQuestionsByNo
+      !nextProps.headingQuestionsByNo &&
+      !prevProps.headingQuestionsBySectionLabel &&
+      !nextProps.headingQuestionsBySectionLabel
     ) {
       return true;
     }
@@ -752,6 +887,17 @@ export default function ListeningPracticePanel({
     return options.length > 0
       ? new Map(options.map((option) => [getOptionLabel(option), option] as const))
       : null;
+  }, [currentPart]);
+  const currentHeadingQuestionsBySectionLabel = useMemo(() => {
+    if (!currentPart) return null;
+
+    const entries = currentPart.groups
+      .filter((group) => group.questionType === "matching_headings")
+      .flatMap((group) => group.questions)
+      .map((question) => [getHeadingSectionLabel(question.stem), question] as const)
+      .filter((entry): entry is [string, ListeningQuestion] => Boolean(entry[0]));
+
+    return entries.length > 0 ? new Map(entries) : null;
   }, [currentPart]);
   const firstSingleChoiceGroupId = useMemo(() => {
     if (!currentPart) return null;
@@ -880,6 +1026,7 @@ export default function ListeningPracticePanel({
                 answers={answers}
                 submitted={currentSubmitted}
                 headingQuestionsByNo={currentHeadingQuestionsByNo}
+                headingQuestionsBySectionLabel={currentHeadingQuestionsBySectionLabel}
                 headingOptionsByLabel={currentHeadingOptionsByLabel}
                 onAnswerChange={updateAnswer}
               />
@@ -920,8 +1067,7 @@ export default function ListeningPracticePanel({
                       group.questionType === "fill_blank" &&
                       Boolean(group.contentHtml || group.instructionHtml);
                     const isMatchingHeadings =
-                      group.questionType === "matching_headings" &&
-                      Boolean(group.contentHtml);
+                      group.questionType === "matching_headings";
                     const isMatchingToMain =
                       group.questionType === "matching_to_main" &&
                       Boolean(group.contentHtml || group.instructionHtml);
@@ -932,7 +1078,9 @@ export default function ListeningPracticePanel({
                     const showGroupHtml =
                       group.questionType !== "single_choice" ||
                       group.id === firstSingleChoiceGroupId;
-                    const isDragMatching = group.questionType === "matching";
+                    const isDragMatching =
+                      group.questionType === "matching" ||
+                      group.questionType === "matching_opinion";
                     const dragOptionsByLabel =
                       isMatchingToMain && group.sharedOptions.length > 0
                         ? new Map(
@@ -947,7 +1095,9 @@ export default function ListeningPracticePanel({
                       group.questions.length > 1 &&
                       new Set(
                         group.questions.map((question) =>
-                          stripHtml(question.stem || group.title),
+                          normalizeGroupedMultipleChoicePrompt(
+                            stripHtml(question.stem || group.title),
+                          ),
                         ),
                       ).size === 1;
 
@@ -1520,6 +1670,8 @@ export default function ListeningPracticePanel({
                                   group.sharedOptions.length > 0 &&
                                   group.questionType !== "fill_blank" &&
                                   group.questionType !== "matching" &&
+                                  group.questionType !== "matching_opinion" &&
+                                  group.questionType !== "matching_headings" &&
                                   group.questionType !== "map_labeling";
                                 const acceptedAnswers = parseAnswerValues(
                                   question.answerText,

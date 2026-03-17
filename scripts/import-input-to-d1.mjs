@@ -114,18 +114,23 @@ function inferQuestionType(rawType, rawRealType, module) {
   if (type === "10") return "fill_blank";
   if (type === "11") return "matching_opinion";
   if (type === "26") return "map_labeling";
-  if (realType === "11") return "fill_blank";
-  if (realType === "9") return "single_choice";
-  if (realType === "10") return "multiple_choice";
+  // if (realType === "11") return "fill_blank";
+  // if (realType === "9") return "single_choice";
+  // if (realType === "10") return "multiple_choice";
 
   // MANUAL
   if (type === "4") return "table_options";
+  if (type === "12") return "fill_blank";
+  if (type === "13") return "matching_to_main";
   if (type === "14") return "fill_blank";
   if (type === "15") return "fill_blank";
   if (type === "17") return "fill_blank";
   if (type === "18") return "matching";
+  if (type === "19") return "matching_opinion";
   if (type === "20") return "matching";
+  if (type === "21") return "matching";
   if (type === "22") return "matching";
+  if (type === "24") return "table_options";
   if (type === "28") return "table_options";
   if (type === "29") return "matching_to_main";  // 选项拖拽到 题目中的空
   return "unknown";
