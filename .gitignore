@@ -206,3 +206,5 @@ next-env.d.ts
 .vscode
 # clerk configuration (can include secrets)
 /.clerk/
+
+gen-lang-client-0788141694-02f498310157.json
