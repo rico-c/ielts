@@ -3,7 +3,6 @@
 import crypto from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -16,8 +15,14 @@ const CONFIG = {
   dryRun: false,
   limit: 0,
   languageCode: "en-GB",
-  pollIntervalMs: 3000,
-  timeoutMs: 10 * 60 * 1000,
+  location: "global",
+  model: "long",
+  projectId: process.env.GOOGLE_CLOUD_PROJECT || "gen-lang-client-0788141694",
+  gcsBucket: process.env.GCS_BUCKET || "ieltsyoushow",
+  gcsPrefix: process.env.GCS_PREFIX || "paper-parts-audio",
+  pollIntervalMs: Number(process.env.GOOGLE_SPEECH_POLL_INTERVAL_MS || 5000),
+  pollTimeoutMs: Number(process.env.GOOGLE_SPEECH_POLL_TIMEOUT_MS || 30 * 60 * 1000),
+  keepGcsAudio: false,
 };
 
 function sqlQuote(value) {
@@ -41,21 +46,40 @@ function parseArgs(argv) {
     else if (arg === "--dry-run") options.dryRun = true;
     else if (arg === "--limit") options.limit = Number(argv[++i] || options.limit);
     else if (arg === "--language-code") options.languageCode = argv[++i] || options.languageCode;
+    else if (arg === "--location") options.location = argv[++i] || options.location;
+    else if (arg === "--model") options.model = argv[++i] || options.model;
+    else if (arg === "--project-id") options.projectId = argv[++i] || options.projectId;
+    else if (arg === "--gcs-bucket") options.gcsBucket = argv[++i] || options.gcsBucket;
+    else if (arg === "--gcs-prefix") options.gcsPrefix = argv[++i] || options.gcsPrefix;
+    else if (arg === "--poll-interval-ms") options.pollIntervalMs = Number(argv[++i] || options.pollIntervalMs);
+    else if (arg === "--poll-timeout-ms") options.pollTimeoutMs = Number(argv[++i] || options.pollTimeoutMs);
+    else if (arg === "--keep-gcs-audio") options.keepGcsAudio = true;
     else if (arg === "--id") options.ids.push(argv[++i]);
     else if (arg === "--help" || arg === "-h") {
       console.log(`Usage:
   node scripts/transcribe-paper-parts.mjs [--db ielts] [--remote|--local] [--overwrite] [--dry-run]
-                                         [--limit 10] [--language-code en-GB] [--id PART_ID]
+                                         [--limit 10] [--language-code en-GB] [--location global]
+                                         [--model long] [--project-id your-gcp-project]
+                                         [--gcs-bucket your-bucket] [--gcs-prefix paper-parts-audio]
+                                         [--poll-interval-ms 5000] [--poll-timeout-ms 1800000]
+                                         [--keep-gcs-audio] [--id PART_ID]
 
 Examples:
+  GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json \\
+  GOOGLE_CLOUD_PROJECT=your-gcp-project \\
+  GCS_BUCKET=your-audio-bucket \\
   node scripts/transcribe-paper-parts.mjs --remote --limit 5
-  node scripts/transcribe-paper-parts.mjs --local --overwrite --id paper_part_123
+
+  node scripts/transcribe-paper-parts.mjs --local --overwrite --project-id your-gcp-project \\
+    --gcs-bucket your-audio-bucket --id paper_part_123
 
 Notes:
   1. Reads rows from paper_parts where audio_url is not NULL.
-  2. Downloads each audio file and sends it to Google Cloud Speech-to-Text.
-  3. Stores transcript JSON, including word-level timestamps, into paper_parts.transcript.
+  2. Downloads each audio file, uploads it to Google Cloud Storage, then uses Speech-to-Text V2 batchRecognize.
+  3. Stores transcript plain text into paper_parts.transcript.
   4. Requires paper_parts.transcript to exist. Run migrations first.
+  5. Requires Cloud Speech-to-Text API and Cloud Storage permissions on the target project/bucket.
+  6. Uses Application Default Credentials / service account auth instead of API keys.
 `);
       process.exit(0);
     } else {
@@ -65,6 +89,22 @@ Notes:
 
   if (!Number.isFinite(options.limit) || options.limit < 0) {
     throw new Error("--limit must be a non-negative number.");
+  }
+
+  if (!options.projectId) {
+    throw new Error("Missing Google Cloud project id. Pass --project-id or set GOOGLE_CLOUD_PROJECT.");
+  }
+
+  if (!options.gcsBucket) {
+    throw new Error("Missing GCS bucket. Pass --gcs-bucket or set GCS_BUCKET.");
+  }
+
+  if (!Number.isFinite(options.pollIntervalMs) || options.pollIntervalMs <= 0) {
+    throw new Error("--poll-interval-ms must be a positive number.");
+  }
+
+  if (!Number.isFinite(options.pollTimeoutMs) || options.pollTimeoutMs <= 0) {
+    throw new Error("--poll-timeout-ms must be a positive number.");
   }
 
   return options;
@@ -102,56 +142,72 @@ function extractRowsFromD1Json(raw) {
   return rows;
 }
 
-async function readGoogleApiKey(projectRoot) {
-  const filePath = path.join(projectRoot, "src/constants/apikeys.ts");
-  const source = await readFile(filePath, "utf8");
-  const match = source.match(/GCP_GOOGLE_APIKEY\s*=\s*['"]([^'"]+)['"]/);
+async function getGoogleAccessToken() {
+  let GoogleAuth;
 
-  if (!match?.[1]) {
-    throw new Error(`Could not read GCP_GOOGLE_APIKEY from ${filePath}`);
+  try {
+    ({ GoogleAuth } = await import("google-auth-library"));
+  } catch {
+    throw new Error(
+      'Missing dependency "google-auth-library". Run `npm i` in /Users/rico/Desktop/ielts first.',
+    );
   }
 
-  return match[1];
-}
+  const auth = new GoogleAuth({
+    scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+  });
+  const client = await auth.getClient();
+  const tokenResponse = await client.getAccessToken();
+  const accessToken = typeof tokenResponse === "string" ? tokenResponse : tokenResponse?.token;
 
-function inferEncoding(audioUrl, contentType) {
-  const lowerUrl = String(audioUrl).toLowerCase();
-  const normalizedContentType = String(contentType || "").split(";")[0].trim().toLowerCase();
-
-  if (normalizedContentType === "audio/mpeg" || lowerUrl.endsWith(".mp3")) return "MP3";
-  if (normalizedContentType === "audio/flac" || lowerUrl.endsWith(".flac")) return "FLAC";
-  if (normalizedContentType === "audio/wav" || normalizedContentType === "audio/x-wav" || lowerUrl.endsWith(".wav")) {
-    return undefined;
-  }
-  if (normalizedContentType === "audio/webm" || lowerUrl.endsWith(".webm")) return "WEBM_OPUS";
-  if (normalizedContentType === "audio/ogg" || lowerUrl.endsWith(".ogg") || lowerUrl.endsWith(".opus")) {
-    return "OGG_OPUS";
-  }
-  if (normalizedContentType === "audio/mp4" || normalizedContentType === "audio/x-m4a" || lowerUrl.endsWith(".m4a")) {
-    return "MP3";
+  if (!accessToken) {
+    throw new Error(
+      "Failed to obtain Google access token. Check GOOGLE_APPLICATION_CREDENTIALS or ADC setup.",
+    );
   }
 
-  return undefined;
+  return accessToken;
 }
 
-function toBase64(buffer) {
-  return Buffer.from(buffer).toString("base64");
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
-function normalizeWordInfo(wordInfo) {
-  return {
-    word: wordInfo.word ?? "",
-    startTime: wordInfo.startTime ?? null,
-    endTime: wordInfo.endTime ?? null,
-    speakerTag: wordInfo.speakerTag ?? null,
-    confidence: wordInfo.confidence ?? null,
-  };
+function sanitizeObjectPart(value) {
+  return String(value)
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 120) || "audio";
 }
 
-function buildTranscriptPayload(row, response, config) {
+function buildGcsObjectName(row, audioUrl, prefix) {
+  const url = new URL(audioUrl);
+  const ext = path.extname(url.pathname) || ".bin";
+  const safePrefix = prefix.replace(/^\/+|\/+$/g, "");
+  const safeTitle = sanitizeObjectPart(row.title);
+  const safeId = sanitizeObjectPart(row.id);
+  const filename = `${safeId}-${safeTitle}-${crypto.randomUUID()}${ext}`;
+  return safePrefix ? `${safePrefix}/${filename}` : filename;
+}
+
+function getAudioContentType(audioResponse, audioUrl) {
+  const headerType = audioResponse.headers.get("content-type");
+  if (headerType) {
+    return headerType.split(";")[0].trim();
+  }
+
+  const ext = path.extname(new URL(audioUrl).pathname).toLowerCase();
+  if (ext === ".mp3") return "audio/mpeg";
+  if (ext === ".wav") return "audio/wav";
+  if (ext === ".m4a") return "audio/mp4";
+  if (ext === ".ogg") return "audio/ogg";
+  return "application/octet-stream";
+}
+
+function buildTranscriptText(response) {
   const results = Array.isArray(response.results) ? response.results : [];
-  const alternatives = [];
-  const words = [];
   const transcriptParts = [];
 
   for (const result of results) {
@@ -161,93 +217,81 @@ function buildTranscriptPayload(row, response, config) {
     if (typeof firstAlternative.transcript === "string" && firstAlternative.transcript.trim()) {
       transcriptParts.push(firstAlternative.transcript.trim());
     }
+  }
 
-    alternatives.push({
-      transcript: firstAlternative.transcript ?? "",
-      confidence: firstAlternative.confidence ?? null,
-      words: Array.isArray(firstAlternative.words) ? firstAlternative.words.map(normalizeWordInfo) : [],
-    });
+  return transcriptParts.join(" ").replace(/\s+/g, " ").trim();
+}
 
-    if (Array.isArray(firstAlternative.words)) {
-      words.push(...firstAlternative.words.map(normalizeWordInfo));
-    }
+async function uploadAudioToGcs(row, audioBuffer, contentType, accessToken, options) {
+  const objectName = buildGcsObjectName(row, row.audio_url, options.gcsPrefix);
+  const uploadUrl = new URL(`https://storage.googleapis.com/upload/storage/v1/b/${encodeURIComponent(options.gcsBucket)}/o`);
+  uploadUrl.searchParams.set("uploadType", "media");
+  uploadUrl.searchParams.set("name", objectName);
+
+  const response = await fetch(uploadUrl, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      "content-type": contentType,
+      "content-length": String(audioBuffer.length),
+    },
+    body: audioBuffer,
+  });
+
+  const body = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(`GCS upload failed: ${JSON.stringify(body)}`);
   }
 
   return {
-    provider: "google-cloud-speech-to-text-v1",
-    transcribedAt: new Date().toISOString(),
-    paperPartId: row.id,
-    partTitle: row.title,
-    audioUrl: row.audio_url,
-    config,
-    transcript: transcriptParts.join(" ").replace(/\s+/g, " ").trim(),
-    alternatives,
-    words,
-    rawResults: results,
+    gcsUri: `gs://${options.gcsBucket}/${objectName}`,
+    objectName,
+    uploadResponse: body,
   };
 }
 
-async function pollOperation(operationName, apiKey, options) {
-  const startedAt = Date.now();
+async function deleteGcsObject(accessToken, bucket, objectName) {
+  const deleteUrl = `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(objectName)}`;
+  const response = await fetch(deleteUrl, {
+    method: "DELETE",
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+    },
+  });
 
-  while (Date.now() - startedAt < options.timeoutMs) {
-    const response = await fetch(
-      `https://speech.googleapis.com/v1/operations/${encodeURIComponent(operationName)}?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: "GET",
-      },
-    );
-
-    const body = await response.json();
-    if (!response.ok) {
-      throw new Error(`Failed to poll operation ${operationName}: ${JSON.stringify(body)}`);
-    }
-
-    if (body.done) {
-      if (body.error) {
-        throw new Error(`Transcription operation failed: ${JSON.stringify(body.error)}`);
-      }
-      return body.response ?? {};
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, options.pollIntervalMs));
+  if (!response.ok && response.status !== 404) {
+    const body = await response.text();
+    throw new Error(`GCS delete failed: ${response.status} ${body}`);
   }
-
-  throw new Error(`Timed out waiting for operation ${operationName}`);
 }
 
-async function transcribeAudio(row, apiKey, options) {
-  const audioResponse = await fetch(row.audio_url);
-  if (!audioResponse.ok) {
-    throw new Error(`Failed to download audio: ${audioResponse.status} ${audioResponse.statusText}`);
-  }
-
-  const contentType = audioResponse.headers.get("content-type");
-  const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
-  const encoding = inferEncoding(row.audio_url, contentType);
+async function startBatchRecognize(gcsUri, accessToken, options) {
   const config = {
-    languageCode: options.languageCode,
-    enableWordTimeOffsets: true,
-    enableAutomaticPunctuation: true,
-  };
-
-  if (encoding) {
-    config.encoding = encoding;
-  }
-
-  const requestBody = {
-    config,
-    audio: {
-      content: toBase64(audioBuffer),
+    autoDecodingConfig: {},
+    languageCodes: [options.languageCode],
+    model: options.model,
+    features: {
+      enableWordTimeOffsets: true,
+      enableAutomaticPunctuation: true,
     },
   };
 
+  const requestBody = {
+    config,
+    files: [{ uri: gcsUri }],
+    recognitionOutputConfig: {
+      inlineResponseConfig: {},
+    },
+  };
+  const recognizerPath = `projects/${options.projectId}/locations/${options.location}/recognizers/_`;
+
   const response = await fetch(
-    `https://speech.googleapis.com/v1/speech:longrunningrecognize?key=${encodeURIComponent(apiKey)}`,
+    `https://speech.googleapis.com/v2/${recognizerPath}:batchRecognize`,
     {
       method: "POST",
       headers: {
         "content-type": "application/json",
+        authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify(requestBody),
     },
@@ -258,12 +302,94 @@ async function transcribeAudio(row, apiKey, options) {
     throw new Error(`Google Speech request failed: ${JSON.stringify(body)}`);
   }
 
-  if (!body.name) {
-    throw new Error(`Google Speech did not return operation name: ${JSON.stringify(body)}`);
+  return {
+    operationName: body.name,
+    recognizerPath,
+    config,
+  };
+}
+
+async function pollOperation(operationName, accessToken, options) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < options.pollTimeoutMs) {
+    const response = await fetch(`https://speech.googleapis.com/v2/${operationName}`, {
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    const body = await response.json();
+    if (!response.ok) {
+      throw new Error(`Google operation poll failed: ${JSON.stringify(body)}`);
+    }
+
+    if (body.done) {
+      if (body.error) {
+        throw new Error(`Google Speech operation failed: ${JSON.stringify(body.error)}`);
+      }
+
+      return body.response ?? {};
+    }
+
+    await sleep(options.pollIntervalMs);
   }
 
-  const finalResponse = await pollOperation(body.name, apiKey, options);
-  return buildTranscriptPayload(row, finalResponse, config);
+  throw new Error(`Timed out waiting for Google Speech operation after ${options.pollTimeoutMs}ms.`);
+}
+
+function extractBatchInlineTranscript(batchResponse) {
+  const results = batchResponse?.results && typeof batchResponse.results === "object"
+    ? Object.values(batchResponse.results)
+    : [];
+
+  if (results.length === 0) {
+    throw new Error(`BatchRecognize returned no file results: ${JSON.stringify(batchResponse)}`);
+  }
+
+  const firstResult = results[0];
+  if (firstResult?.error) {
+    throw new Error(`BatchRecognize file result failed: ${JSON.stringify(firstResult.error)}`);
+  }
+
+  const transcript = firstResult?.inlineResult?.transcript;
+  if (!transcript) {
+    throw new Error(`BatchRecognize response missing inline transcript: ${JSON.stringify(firstResult)}`);
+  }
+
+  return {
+    transcript,
+    metadata: firstResult.metadata ?? transcript.metadata ?? null,
+    batchFileResult: firstResult,
+  };
+}
+
+async function transcribeAudio(row, accessToken, options) {
+  const audioResponse = await fetch(row.audio_url);
+  if (!audioResponse.ok) {
+    throw new Error(`Failed to download audio: ${audioResponse.status} ${audioResponse.statusText}`);
+  }
+
+  const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
+  const contentType = getAudioContentType(audioResponse, row.audio_url);
+  const upload = await uploadAudioToGcs(row, audioBuffer, contentType, accessToken, options);
+
+  try {
+    const batchJob = await startBatchRecognize(upload.gcsUri, accessToken, options);
+    const batchResponse = await pollOperation(batchJob.operationName, accessToken, options);
+    const extracted = extractBatchInlineTranscript(batchResponse);
+
+    return buildTranscriptText({
+      results: extracted.transcript.results,
+      metadata: extracted.metadata,
+    });
+  } finally {
+    if (!options.keepGcsAudio) {
+      await deleteGcsObject(accessToken, options.gcsBucket, upload.objectName).catch((error) => {
+        console.warn(`Warning: failed to delete GCS object ${upload.objectName}: ${error.message}`);
+      });
+    }
+  }
 }
 
 async function fetchPaperParts(options) {
@@ -310,10 +436,10 @@ async function fetchPaperParts(options) {
   );
 }
 
-async function updateTranscript(options, rowId, transcriptPayload) {
+async function updateTranscript(options, rowId, transcriptText) {
   const sql = `
     UPDATE paper_parts
-    SET transcript = ${sqlQuote(JSON.stringify(transcriptPayload))}
+    SET transcript = ${sqlQuote(transcriptText)}
     WHERE id = ${sqlQuote(rowId)};
   `;
 
@@ -331,9 +457,8 @@ async function updateTranscript(options, rowId, transcriptPayload) {
 }
 
 async function main() {
-  const projectRoot = process.cwd();
   const options = parseArgs(process.argv.slice(2));
-  const apiKey = 'AIzaSyAIJodN0db1Q0pozPPFEDatt0XFg0VqeLc';
+  const accessToken = await getGoogleAccessToken();
   const rows = await fetchPaperParts(options);
 
   console.log(
@@ -347,16 +472,16 @@ async function main() {
     console.log(`[${index + 1}/${rows.length}] Transcribing ${row.id} ${row.audio_url}`);
 
     try {
-      const transcriptPayload = await transcribeAudio(row, apiKey, options);
+      const transcriptText = await transcribeAudio(row, accessToken, options);
 
       if (options.dryRun) {
         console.log(
-          `DRY RUN ${row.id}: transcript length=${transcriptPayload.transcript.length}, words=${transcriptPayload.words.length}`,
+          `DRY RUN ${row.id}: transcript length=${transcriptText.length}`,
         );
       } else {
-        await updateTranscript(options, row.id, transcriptPayload);
+        await updateTranscript(options, row.id, transcriptText);
         console.log(
-          `Updated ${row.id}: transcript length=${transcriptPayload.transcript.length}, words=${transcriptPayload.words.length}`,
+          `Updated ${row.id}: transcript length=${transcriptText.length}`,
         );
       }
 
