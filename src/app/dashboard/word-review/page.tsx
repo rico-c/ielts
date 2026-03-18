@@ -77,7 +77,7 @@ export default function WordReviewPage() {
     <div className="mx-auto max-w-5xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">单词复习</h1>
-        <p className="mt-1 text-sm text-slate-500">沿用 PTE 的 deck + 进度保存方案，在 IELTS 里复刻完整单词复习工作流。</p>
+        <p className="mt-1 text-sm text-slate-500">目前只保留单词本复习和雅思 6 分核心词汇两个词库，方便你按最常用的路径继续复习。</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
