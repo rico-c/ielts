@@ -1,5 +1,5 @@
 import Link from "next/link";
-import ElevenLabsVoiceAssistant from "@/components/ElevenLabsVoiceAssistant";
+import PricingSection from "@/components/PricingSection";
 
 const quickActions = [
   {
@@ -30,8 +30,6 @@ const summaryCards = [
 ];
 
 export default function DashboardPage() {
-  const agentId = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID ?? "";
-
   return (
     <div className="space-y-8">
       <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
@@ -96,6 +94,12 @@ export default function DashboardPage() {
         </div>
         {/* <ElevenLabsVoiceAssistant agentId={agentId} /> */}
       </section>
+
+      <PricingSection
+        mode="dashboard"
+        ctaHref="/dashboard/practice"
+        ctaLabel="继续使用免费版"
+      />
 
       <section id="latest-tests" className="rounded-[1.75rem] border border-gray-100 bg-white p-2 shadow-sm sm:p-4">
         <div className="px-4 pt-4 sm:px-6">

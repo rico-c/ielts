@@ -22,8 +22,8 @@ export default function SiteHeader() {
           <Link href="/#features" className="transition-colors hover:text-blue-600">
             功能
           </Link>
-          <Link href="/#practice" className="transition-colors hover:text-blue-600">
-            训练路径
+          <Link href="/#pricing" className="transition-colors hover:text-blue-600">
+            价格
           </Link>
           <Link href="/blogs" className="transition-colors hover:text-blue-600">
             博客
