@@ -37,17 +37,17 @@
 	"private": true,
 	"packageManager": "yarn@4.5.0",
 	"scripts": {
-		"build": "next build",
+		"build": "node scripts/generate-blog-data.js && next build",
 		"cf-typegen": "wrangler types --env-interface CloudflareEnv env.d.ts",
 		"check": "npm run build && tsc",
 		"clear:d1": "node scripts/clear-d1-data.mjs --remote",
-		"deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-		"dev": "next dev --webpack",
-		"dev:turbo": "next dev --turbopack",
+		"deploy": "node scripts/generate-blog-data.js && opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+		"dev": "node scripts/generate-blog-data.js && next dev --webpack",
+		"dev:turbo": "node scripts/generate-blog-data.js && next dev --turbopack",
 		"import:d1": "node scripts/import-input-to-d1.mjs --remote",
 		"import:word-review": "node scripts/import-word-review-json.mjs --remote",
 		"lint": "next lint",
-		"preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+		"preview": "node scripts/generate-blog-data.js && opennextjs-cloudflare build && opennextjs-cloudflare preview",
 		"transcribe:paper-parts": "node scripts/transcribe-paper-parts.mjs --remote",
 		"start": "next start"
 	}

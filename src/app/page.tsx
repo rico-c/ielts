@@ -1,9 +1,9 @@
 import { auth } from "@clerk/nextjs/server";
-import { SignInButton, UserButton } from "@clerk/nextjs";
-import Image from "next/image";
 import Link from "next/link";
-import ElevenLabsVoiceAssistant from "@/components/ElevenLabsVoiceAssistant";
 import UniversityTicker from "@/components/UniversityTicker";
+import SiteFooter from "@/components/SiteFooter";
+import SiteHeader from "@/components/SiteHeader";
+import { getSortedPostsData } from "@/lib/blogs";
 
 const featureCards = [
   {
@@ -78,63 +78,11 @@ const statCards = [
 
 export default async function Home() {
   const { userId } = await auth();
-  const agentId = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID ?? "";
+  const latestPosts = getSortedPostsData().slice(0, 3);
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
-      <header className="fixed inset-x-0 top-4 z-50 bg-white/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center">
-            <Image
-              src="/logo.png"
-              alt="优秀IELTS"
-              width={160}
-              height={40}
-              className="h-12 w-auto"
-              priority
-            />
-          </Link>
-
-          <nav className="hidden items-center gap-8 text-sm font-medium text-gray-600 md:flex">
-            <a
-              href="#features"
-              className="transition-colors hover:text-blue-600"
-            >
-              功能
-            </a>
-            <a
-              href="#practice"
-              className="transition-colors hover:text-blue-600"
-            >
-              价格
-            </a>
-            <a
-              href="#questions"
-              className="transition-colors hover:text-blue-600"
-            >
-              博客
-            </a>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            {userId ? (
-              <Link
-                href="/dashboard"
-                className="text-sm font-medium text-gray-700 transition-colors hover:text-blue-600"
-              >
-                进入备考平台
-              </Link>
-            ) : (
-              <SignInButton mode="modal" forceRedirectUrl="/dashboard">
-                <button className="rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700">
-                  登录
-                </button>
-              </SignInButton>
-            )}
-            {userId ? <UserButton /> : null}
-          </div>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main className="flex-grow pb-16 pt-32">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -321,114 +269,69 @@ export default async function Home() {
             <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h2 className="text-3xl font-bold text-gray-900">
-                  剑雅真题随时进入练习
+                  进入博客平台查看备考攻略
                 </h2>
                 <p className="mt-2 max-w-2xl text-gray-500">
+                  不只是看技巧。这里会持续补充口语、写作、阅读和听力的高频问题拆解，学完可以直接回到平台训练。
+                </p>
+              </div>
+              <Link
+                href="/blogs"
+                className="inline-flex items-center justify-center rounded-full border border-gray-200 px-5 py-3 text-sm font-medium text-gray-700 transition-colors hover:border-blue-200 hover:text-blue-600"
+              >
+                查看全部博客
+              </Link>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-3">
+              {latestPosts.map((post) => (
+                <article
+                  key={post.slug}
+                  className="rounded-[1.75rem] border border-gray-100 bg-white p-7 shadow-lg shadow-slate-200/30"
+                >
+                  <time
+                    dateTime={post.date}
+                    className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700"
+                  >
+                    {post.date}
+                  </time>
+                  <h3 className="mt-4 text-xl font-bold leading-8 text-gray-900">
+                    <Link href={`/blogs/${post.slug}`} className="transition-colors hover:text-blue-600">
+                      {post.title}
+                    </Link>
+                  </h3>
+                  <p className="mt-3 text-sm leading-7 text-gray-500">
+                    {post.description}
+                  </p>
+                  <Link
+                    href={`/blogs/${post.slug}`}
+                    className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700"
+                  >
+                    阅读全文 <span aria-hidden="true">→</span>
+                  </Link>
+                </article>
+              ))}
+            </div>
+
+            {/* <div className="mt-10 flex flex-col gap-4 rounded-[1.75rem] border border-gray-100 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">练完文章里的方法，再回平台实战</h3>
+                <p className="mt-2 text-sm text-gray-500">
                   登录后可继续进入个人备考平台，按模块、Test 和 Part 快速切换，保持稳定的刷题节奏。
                 </p>
               </div>
               <Link
                 href={userId ? "/dashboard" : "/sign-in"}
-                className="inline-flex items-center justify-center rounded-full border border-gray-200 px-5 py-3 text-sm font-medium text-gray-700 transition-colors hover:border-blue-200 hover:text-blue-600"
+                className="inline-flex items-center justify-center rounded-full bg-blue-600 px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700"
               >
                 {userId ? "进入平台继续练习" : "登录后保存训练记录"}
               </Link>
-            </div>
+            </div> */}
           </section>
         </div>
       </main>
 
-      <footer className="border-t border-gray-100 bg-gray-50 pt-16 pb-8">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-12 grid gap-8 md:grid-cols-4">
-            <div>
-              <Image
-                src="/logo.png"
-                alt="优秀IELTS"
-                width={120}
-                height={30}
-                className="mb-6 opacity-80"
-                unoptimized
-              />
-              <p className="text-sm leading-relaxed text-gray-500">
-                优秀IELTS 聚合 AI 口语模拟、剑雅真题练习与个人备考工作台，
-                帮你把听说读写训练放进同一套高频复盘流程。
-              </p>
-            </div>
-
-            <div>
-              <h4 className="mb-4 font-semibold text-gray-900">产品</h4>
-              <ul className="space-y-2 text-sm text-gray-500">
-                <li>
-                  <Link href="/dashboard/practice" className="hover:text-blue-600">
-                    真题练习
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/dashboard/voice" className="hover:text-blue-600">
-                    AI 口语对练
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/dashboard" className="hover:text-blue-600">
-                    个人备考平台
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="mb-4 font-semibold text-gray-900">资源</h4>
-              <ul className="space-y-2 text-sm text-gray-500">
-                <li>
-                  <a href="#features" className="hover:text-blue-600">
-                    平台功能
-                  </a>
-                </li>
-                <li>
-                  <a href="#practice" className="hover:text-blue-600">
-                    训练路径
-                  </a>
-                </li>
-                <li>
-                  <a href="#questions" className="hover:text-blue-600">
-                    真题入口
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="mb-4 font-semibold text-gray-900">联系</h4>
-              <ul className="space-y-2 text-sm text-gray-500">
-                <li>official@youshowedu.com</li>
-                <li>Mon - Sun / 10:00 - 22:00</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="mb-8 border-t border-gray-200 pt-8">
-            <h4 className="mb-4 text-center text-sm font-semibold text-gray-500">
-              友情链接
-            </h4>
-          </div>
-
-          <div className="border-t border-gray-200 pt-8">
-            <div className="flex flex-col items-center justify-center gap-4 text-sm text-gray-400 md:flex-row">
-              <p>© 2026 优秀IELTS. All rights reserved.</p>
-              <p>Youshow Education PTY LTD</p>
-              <div className="flex gap-4">
-                <Link href="/terms" className="transition-colors hover:text-gray-600">
-                  服务条款
-                </Link>
-                <Link href="/privacy" className="transition-colors hover:text-gray-600">
-                  隐私政策
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

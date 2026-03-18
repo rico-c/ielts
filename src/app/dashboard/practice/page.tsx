@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, ChevronUp, LoaderCircle } from "lucide-react";
+import ElevenLabsVoiceAssistant from "@/components/ElevenLabsVoiceAssistant";
 import ListeningPracticePanel from "@/components/ListeningPracticePanel";
 import type { ListeningPracticePaper } from "@/lib/ielts-db";
 
@@ -52,6 +54,7 @@ function formatModuleLabel(module: ModuleId) {
 }
 
 function DashboardPracticeContent() {
+  const agentId = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID ?? "";
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -335,6 +338,32 @@ function DashboardPracticeContent() {
           hideHeaderSummary={isSelectorCollapsed}
         />
       ) : null}
+
+      <section className="overflow-hidden rounded-[2rem] border border-[var(--line)] bg-white shadow-sm">
+        <div className="border-b border-[var(--line)] bg-[linear-gradient(135deg,rgba(238,242,255,0.98),rgba(255,255,255,0.98))] px-6 py-6 sm:px-8">
+          <div className="inline-flex rounded-full bg-indigo-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-indigo-700">
+            Speaking Mock
+          </div>
+          <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="max-w-2xl">
+              <h2 className="text-3xl font-extrabold tracking-tight text-slate-900">口语模考</h2>
+              <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
+                做完剑雅真题后，直接继续 Part 1、Part 2、Part 3 的连续口语模拟。这里保留 AI 对话入口，方便切换到独立模考节奏。
+              </p>
+            </div>
+            <Link
+              href="/dashboard/voice"
+              className="inline-flex items-center justify-center rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition-colors hover:border-indigo-200 hover:text-indigo-700"
+            >
+              打开独立口语页
+            </Link>
+          </div>
+        </div>
+
+        <div className="px-4 py-4 sm:px-6 sm:py-6">
+          <ElevenLabsVoiceAssistant agentId={agentId} />
+        </div>
+      </section>
     </section>
   );
 }
