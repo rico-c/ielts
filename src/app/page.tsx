@@ -146,14 +146,13 @@ export default async function Home() {
               </div>
 
               <h1 className="font-song mb-8 text-5xl font-semibold tracking-tight text-gray-900 sm:text-6xl">
-                <span className="text-blue-600">99%</span>还原度的
+                <span className="text-blue-600">99%</span>同学不知道的
                 <br />
-                模拟雅思口语考试
+                雅思备考神器
               </h1>
 
               <p className="mb-10 max-w-2xl text-xl leading-relaxed text-gray-500">
-                从 AI 口语模拟到剑雅真题练习，把听、说、读、写训练放进同一套工作流里。
-                进入首页就能开始练习，登录后继续保存你的备考节奏。
+                2026全新制作的雅思备考平台，使用超舒适的用户交互体验，让你的备考如丝滑加倍
               </p>
 
               <div className="flex flex-wrap gap-4">

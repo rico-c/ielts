@@ -46,6 +46,7 @@
 		"import:d1": "node scripts/import-input-to-d1.mjs --remote",
 		"lint": "next lint",
 		"preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+		"transcribe:paper-parts": "node scripts/transcribe-paper-parts.mjs --remote",
 		"start": "next start"
 	}
 }
