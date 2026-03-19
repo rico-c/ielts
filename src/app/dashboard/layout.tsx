@@ -7,8 +7,9 @@ import {
   ChevronRight,
   FileText,
   LayoutDashboard,
-  Mic,
   NotebookPen,
+  Settings,
+  SquareChartGantt,
   X,
 } from "lucide-react";
 import Image from "next/image";
@@ -22,8 +23,9 @@ const menuItems = [
   { href: "/dashboard/practice", label: "剑雅真题", icon: BookOpen },
   { href: "/dashboard/word-review", label: "单词复习", icon: NotebookPen },
   { href: "/dashboard/materials", label: "独家资料", icon: FileText },
-  // { href: "/dashboard/voice", label: "口语模考", icon: Mic },
-];
+  { href: "/dashboard/mock-exam", label: "模拟考试", icon: SquareChartGantt },
+  { href: "/dashboard/settings", label: "设置", icon: Settings },
+] as const;
 
 function SidebarIcon({
   icon: Icon,
@@ -34,8 +36,8 @@ function SidebarIcon({
 }) {
   return (
     <span
-      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-        active ? "bg-blue-600 text-white" : "bg-slate-100/80 text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600"
+      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors ${
+        active ? "bg-transparent text-slate-900" : "bg-transparent text-slate-500 group-hover:text-slate-700"
       }`}
     >
       <Icon className="h-[18px] w-[18px]" strokeWidth={2.2} />
@@ -103,7 +105,7 @@ export default function DashboardLayout({
             href="/"
             className={`flex items-center transition-all duration-300 ${collapsed ? "w-0 overflow-hidden opacity-0" : "opacity-100"}`}
           >
-            <Image src="/logo.png" alt="优秀IELTS" width={132} height={32} className="h-8 w-auto" />
+            <Image src="/logo.png" alt="优秀IELTS" width={132} height={32} className="h-10 w-auto" />
           </Link>
           <div className="flex items-center gap-2">
             <button
@@ -133,13 +135,13 @@ export default function DashboardLayout({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`group flex items-center rounded-xl px-3 py-3 transition-colors ${
+                className={`group flex items-center rounded-xl px-3 py-1 transition-colors ${
                   collapsed ? "justify-center" : "gap-3"
-                } ${active ? "bg-slate-100 text-slate-900" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}
+                } ${active ? "bg-transparent text-slate-900" : "text-slate-500 hover:bg-transparent hover:text-slate-700"}`}
                 title={collapsed ? item.label : undefined}
               >
                 <SidebarIcon icon={item.icon} active={active} />
-                {collapsed ? null : <span className="text-sm font-medium">{item.label}</span>}
+                {collapsed ? null : <span className={`text-sm font-medium ${active ? 'text-slate-900' : 'text-slate-500'}`}>{item.label}</span>}
               </Link>
             );
           })}
