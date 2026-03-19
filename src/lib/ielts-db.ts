@@ -39,6 +39,7 @@ export type ListeningPart = {
   instructionHtml: string | null;
   contentHtml: string | null;
   audioUrl: string | null;
+  transcript: string | null;
   sortOrder: number;
   groups: ListeningQuestionGroup[];
 };
@@ -66,6 +67,7 @@ type PartRow = {
   instruction_html: string | null;
   content_html: string | null;
   audio_url: string | null;
+  transcript: string | null;
   sort_order: number;
 };
 
@@ -231,7 +233,7 @@ export async function getPracticePaper(bookNo: number, testNo: number, module: "
     db
       .prepare(
         `
-          SELECT id, part_no, title, instruction_html, content_html, audio_url, sort_order
+          SELECT id, part_no, title, instruction_html, content_html, audio_url, transcript, sort_order
           FROM paper_parts
           WHERE paper_id = ?1
             AND module = ?2
@@ -318,6 +320,7 @@ export async function getPracticePaper(bookNo: number, testNo: number, module: "
     instructionHtml: row.instruction_html,
     contentHtml: row.content_html,
     audioUrl: row.audio_url,
+    transcript: row.transcript,
     sortOrder: row.sort_order,
     groups: (groupsByPart.get(row.id) ?? []).sort((a, b) => a.groupNo - b.groupNo),
   }));

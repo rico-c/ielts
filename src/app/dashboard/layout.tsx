@@ -150,14 +150,14 @@ export default function DashboardLayout({
             <div className="overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4 shadow-sm">
               <h3 className="font-bold text-gray-900">优秀雅思免费版</h3>
               <p className="mt-1 text-xs leading-5 text-slate-600">
-                当前只提供免费计划，价格说明统一放在 dashboard 首页
+                当前所有功能免费使用
               </p>
-              <Link
+              {/* <Link
                 href="/dashboard#pricing"
                 className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-white bg-white/80 px-4 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-white"
               >
                 查看价格
-              </Link>
+              </Link> */}
             </div>
           </div>
         ) : null}

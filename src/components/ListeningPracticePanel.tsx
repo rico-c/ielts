@@ -1017,6 +1017,7 @@ export default function ListeningPracticePanel({
                 <ListeningAudioPlayer
                   src={currentPart.audioUrl}
                   title={`${paper.title} Test ${paper.testNo} · Part ${currentPart.partNo}`}
+                  transcript={currentPart.transcript}
                 />
               </div>
             ) : null}

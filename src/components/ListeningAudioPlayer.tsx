@@ -26,9 +26,11 @@ function formatTime(seconds: number) {
 export default function ListeningAudioPlayer({
   src,
   title,
+  transcript,
 }: {
   src: string;
   title?: string;
+  transcript?: string | null;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const speedGroupId = useId();
@@ -37,6 +39,8 @@ export default function ListeningAudioPlayer({
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isAudioLoading, setIsAudioLoading] = useState(true);
+  const [isTranscriptVisible, setIsTranscriptVisible] = useState(false);
+  const hasTranscript = typeof transcript === "string" && transcript.trim().length > 0;
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -50,6 +54,7 @@ export default function ListeningAudioPlayer({
     setCurrentTime(0);
     setIsPlaying(false);
     setIsAudioLoading(true);
+    setIsTranscriptVisible(false);
   }, [src]);
 
   async function togglePlayback() {
@@ -151,6 +156,16 @@ export default function ListeningAudioPlayer({
           +5s
         </button>
 
+        {hasTranscript ? (
+          <button
+            type="button"
+            onClick={() => setIsTranscriptVisible((current) => !current)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900"
+          >
+            原文
+          </button>
+        ) : null}
+
         <div className="ml-auto flex items-center gap-2">
           <label htmlFor={speedGroupId} className="text-xs font-medium text-slate-500">
             倍速
@@ -200,6 +215,17 @@ export default function ListeningAudioPlayer({
           />
         </div>
       </div>
+
+      {hasTranscript && isTranscriptVisible ? (
+        <div className="mt-5 rounded-[1rem] border border-slate-200 bg-slate-50 px-4 py-3">
+          <div className="mb-2 text-sm font-semibold text-slate-900">
+            听力原文
+          </div>
+          <div className="whitespace-pre-wrap text-sm leading-7 text-slate-700">
+            {transcript}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
