@@ -409,9 +409,9 @@ export default function WordReviewDeckPage() {
                     </p>
                   ) : null}
 
-                  {shouldShowDefinition && currentWord.translation ? (
+                  {/* {shouldShowDefinition && currentWord.translation ? (
                     <p className="text-sm leading-7 text-amber-900/80 sm:text-base">中译：{currentWord.translation}</p>
-                  ) : null}
+                  ) : null} */}
 
                   {hideDefinitionFirst && isDefinitionRevealed ? (
                     <button
