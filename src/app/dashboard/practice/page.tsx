@@ -339,7 +339,7 @@ function DashboardPracticeContent() {
         />
       ) : null}
 
-      <section className="overflow-hidden rounded-[2rem] border border-[var(--line)] bg-white shadow-sm">
+      {/* <section className="overflow-hidden rounded-[2rem] border border-[var(--line)] bg-white shadow-sm">
         <div className="border-b border-[var(--line)] bg-[linear-gradient(135deg,rgba(238,242,255,0.98),rgba(255,255,255,0.98))] px-6 py-6 sm:px-8">
           <div className="inline-flex rounded-full bg-indigo-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-indigo-700">
             Speaking Mock
@@ -363,7 +363,7 @@ function DashboardPracticeContent() {
         <div className="px-4 py-4 sm:px-6 sm:py-6">
           <ElevenLabsVoiceAssistant agentId={agentId} />
         </div>
-      </section>
+      </section> */}
     </section>
   );
 }
