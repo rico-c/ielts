@@ -1605,7 +1605,7 @@ export default function ListeningPracticePanel({
                                       ) : null}
                                     </div>
 
-                                    <div className="mt-4 space-y-2">
+                                    <div className="mt-4 space-y-1">
                                       {group.sharedOptions.map((option) => {
                                         const optionValue = normalizeText(
                                           getOptionValue(option),
@@ -1616,11 +1616,7 @@ export default function ListeningPracticePanel({
                                         return (
                                           <label
                                             key={option.id}
-                                            className={`flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-3 text-sm transition-colors ${
-                                              checked
-                                                ? "border-slate-400 bg-white"
-                                                : "border-slate-200 bg-white/80 hover:border-slate-300"
-                                            }`}
+                                            className="flex cursor-pointer items-start gap-2.5 px-2 py-1.5 text-sm text-slate-700 transition-colors"
                                           >
                                             <input
                                               type="checkbox"
@@ -1722,7 +1718,7 @@ export default function ListeningPracticePanel({
 
                                     <div className="mt-4">
                                       {hasOptions ? (
-                                        <div className="space-y-2">
+                                        <div className="space-y-1">
                                           {group.sharedOptions.map((option) =>
                                             (() => {
                                               const optionValue =
@@ -1731,13 +1727,7 @@ export default function ListeningPracticePanel({
                                               return (
                                                 <label
                                                   key={option.id}
-                                                  className={`flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-3 text-sm transition-colors ${
-                                                    typeof answer ===
-                                                      "string" &&
-                                                    answer === optionValue
-                                                      ? "border-slate-400 bg-white"
-                                                      : "border-slate-200 bg-white/80 hover:border-slate-300"
-                                                  }`}
+                                                  className="flex cursor-pointer items-start gap-2.5 px-2 py-1.5 text-sm text-slate-700 transition-colors"
                                                 >
                                                   <input
                                                     type="radio"
