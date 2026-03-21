@@ -159,7 +159,7 @@ function DashboardPracticeContent() {
   }, [practiceApiUrl]);
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-4">
       <div className="overflow-hidden rounded-[2rem] border border-[var(--line)] bg-white shadow-sm">
         <div
           className={`border-b border-[var(--line)] bg-[linear-gradient(135deg,rgba(239,246,255,0.95),rgba(255,255,255,0.98))] px-6 py-4 ${
@@ -172,18 +172,12 @@ function DashboardPracticeContent() {
           }}
         >
           <div className="flex items-center gap-5 justify-between">
-            {/* <div className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-blue-700">
-                Cambridge IELTS
-              </div> */}
-            {/* <h1 className=" text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
-              剑雅真题
-            </h1> */}
             {isSelectorCollapsed ? (
               <h2 className="text-xl font-extrabold tracking-tight text-slate-900">
                 {collapsedSummary}
               </h2>
             ) : (
-              <div className="flex items-center flex-wrap justify-start gap-2">
+              <div className="flex min-w-0 flex-1 flex-wrap items-center justify-start gap-2">
                 {BOOK_NUMBERS.map((bookNo) => {
                   const active = bookNo === activeBookNo;
 
@@ -214,7 +208,7 @@ function DashboardPracticeContent() {
                 event.stopPropagation();
                 setIsSelectorCollapsed((current) => !current);
               }}
-              className="inline-flex items-center gap-1 rounded-full bg-transparent px-1 py-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900"
+              className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-transparent px-1 py-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900"
             >
               {isSelectorCollapsed ? (
                 <ChevronDown className="h-4 w-4" />

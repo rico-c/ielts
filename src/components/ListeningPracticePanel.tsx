@@ -945,7 +945,7 @@ export default function ListeningPracticePanel({
   }, [activePartId, paper.id]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="rounded-[2rem] border border-[var(--line)] bg-white px-6 py-4 shadow-sm ">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -1020,8 +1020,24 @@ export default function ListeningPracticePanel({
       {currentPart ? (
         <section
           key={currentPart.id}
-          className="overflow-hidden rounded-[2rem] border border-[var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))] shadow-sm"
+          className="rounded-[2rem] border border-[var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))] shadow-sm"
         >
+          {currentPart.audioUrl ? (
+            <div className="sticky -top-4 z-20 px-6 pt-4 sm:px-8 md:-top-8">
+              <ListeningAudioPlayer
+                src={currentPart.audioUrl}
+                title={`${paper.title} Test ${paper.testNo} · Part ${currentPart.partNo}`}
+                transcript={currentPart.transcript}
+                analyses={currentPart.groups.map((group) => ({
+                  id: group.id,
+                  groupNo: group.groupNo,
+                  title: group.title,
+                  explain: group.explain,
+                }))}
+              />
+            </div>
+          ) : null}
+
           <div className=" px-6 py-4 sm:px-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -1045,22 +1061,6 @@ export default function ListeningPracticePanel({
                 </div>
               ) : null} */}
             </div>
-
-            {currentPart.audioUrl ? (
-              <div className="mt-5">
-                <ListeningAudioPlayer
-                  src={currentPart.audioUrl}
-                  title={`${paper.title} Test ${paper.testNo} · Part ${currentPart.partNo}`}
-                  transcript={currentPart.transcript}
-                  analyses={currentPart.groups.map((group) => ({
-                    id: group.id,
-                    groupNo: group.groupNo,
-                    title: group.title,
-                    explain: group.explain,
-                  }))}
-                />
-              </div>
-            ) : null}
 
             {hasRenderableHtmlContent(currentPart.contentHtml) ? (
               <HtmlBlock

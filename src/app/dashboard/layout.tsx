@@ -6,7 +6,9 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  Headphones,
   LayoutDashboard,
+  Mic2,
   NotebookPen,
   Settings,
   SquareChartGantt,
@@ -18,14 +20,22 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 
-const menuItems = [
+type DashboardMenuItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+};
+
+const menuItems: DashboardMenuItem[] = [
   { href: "/dashboard", label: "概览", icon: LayoutDashboard },
   { href: "/dashboard/practice", label: "剑雅真题", icon: BookOpen },
   { href: "/dashboard/mock-exam", label: "口语模考", icon: SquareChartGantt },
+  { href: "/dashboard/intensive-listening", label: "精听练习", icon: Headphones },
+  { href: "/dashboard/shadowing", label: "跟读练习", icon: Mic2 },
   { href: "/dashboard/word-review", label: "单词复习", icon: NotebookPen },
   { href: "/dashboard/materials", label: "独家资料", icon: FileText },
   { href: "/dashboard/settings", label: "设置", icon: Settings },
-] as const;
+];
 
 function SidebarIcon({
   icon: Icon,
@@ -141,7 +151,7 @@ export default function DashboardLayout({
                 title={collapsed ? item.label : undefined}
               >
                 <SidebarIcon icon={item.icon} active={active} />
-                {collapsed ? null : <span className={`text-sm font-medium ${active ? 'text-slate-900' : 'text-slate-500'}`}>{item.label}</span>}
+                {collapsed ? null : <span className={`text-sm font-medium ${active ? "text-slate-900" : "text-slate-500"}`}>{item.label}</span>}
               </Link>
             );
           })}
@@ -150,16 +160,16 @@ export default function DashboardLayout({
         {!collapsed ? (
           <div className="px-4 pb-2">
             <div className="overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4 shadow-sm">
-              <h3 className="font-bold text-gray-900">优秀雅思免费版</h3>
+              <h3 className="font-bold text-gray-900">优秀雅思PRO会员</h3>
               <p className="mt-1 text-xs leading-5 text-slate-600">
                 当前所有功能免费使用
               </p>
-              {/* <Link
+              <Link
                 href="/dashboard#pricing"
                 className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-white bg-white/80 px-4 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-white"
               >
                 查看价格
-              </Link> */}
+              </Link>
             </div>
           </div>
         ) : null}
@@ -172,7 +182,7 @@ export default function DashboardLayout({
       </aside>
 
       <main className={`relative z-10 flex-1 p-2 transition-all duration-300 md:p-3 md:pl-0 ${collapsed ? "md:ml-[88px]" : "md:ml-72"}`}>
-        <div className="h-full overflow-y-auto rounded-2xl bg-white p-4 shadow-xl shadow-slate-200/50 md:p-8">
+        <div className="h-full overflow-y-auto rounded-2xl bg-white p-4 shadow-xl shadow-slate-200/50 md:p-6">
           <div className="mb-4 md:hidden">
             <button
               type="button"
