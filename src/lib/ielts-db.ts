@@ -24,6 +24,7 @@ export type ListeningQuestionGroup = {
   instructionHtml: string | null;
   contentHtml: string | null;
   imageUrl: string | null;
+  explain: string | null;
   questionType: string;
   answerRule: string | null;
   questionRangeStart: number | null;
@@ -78,6 +79,7 @@ type GroupRow = {
   title: string | null;
   instruction_html: string | null;
   content_html: string | null;
+  explain: string | null;
   meta_json: string | null;
   question_type: string;
   answer_rule: string | null;
@@ -246,6 +248,7 @@ export async function getPracticePaper(bookNo: number, testNo: number, module: "
       .prepare(
         `
           SELECT qg.id, qg.part_id, qg.group_no, qg.title, qg.instruction_html, qg.content_html,
+                 qg.explain,
                  qg.meta_json,
                  qg.question_type, qg.answer_rule, qg.question_range_start, qg.question_range_end,
                  qg.shared_options_json
@@ -300,6 +303,7 @@ export async function getPracticePaper(bookNo: number, testNo: number, module: "
       instructionHtml: row.instruction_html,
       contentHtml: row.content_html,
       imageUrl: parseGroupImageUrl(row.meta_json),
+      explain: row.explain,
       questionType: row.question_type,
       answerRule: row.answer_rule,
       questionRangeStart: row.question_range_start,

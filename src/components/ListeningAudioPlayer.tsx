@@ -27,10 +27,17 @@ export default function ListeningAudioPlayer({
   src,
   title,
   transcript,
+  analyses = [],
 }: {
   src: string;
   title?: string;
   transcript?: string | null;
+  analyses?: Array<{
+    id: string;
+    groupNo: number;
+    title: string | null;
+    explain: string | null;
+  }>;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const speedGroupId = useId();
@@ -40,7 +47,12 @@ export default function ListeningAudioPlayer({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isAudioLoading, setIsAudioLoading] = useState(true);
   const [isTranscriptVisible, setIsTranscriptVisible] = useState(false);
+  const [isAnalysisVisible, setIsAnalysisVisible] = useState(false);
   const hasTranscript = typeof transcript === "string" && transcript.trim().length > 0;
+  const availableAnalyses = analyses.filter(
+    (item) => typeof item.explain === "string" && item.explain.trim().length > 0,
+  );
+  const hasAnalyses = availableAnalyses.length > 0;
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -55,6 +67,7 @@ export default function ListeningAudioPlayer({
     setIsPlaying(false);
     setIsAudioLoading(true);
     setIsTranscriptVisible(false);
+    setIsAnalysisVisible(false);
   }, [src]);
 
   async function togglePlayback() {
@@ -166,6 +179,16 @@ export default function ListeningAudioPlayer({
           </button>
         ) : null}
 
+        {hasAnalyses ? (
+          <button
+            type="button"
+            onClick={() => setIsAnalysisVisible((current) => !current)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900"
+          >
+            解析
+          </button>
+        ) : null}
+
         <div className="ml-auto flex items-center gap-2">
           <label htmlFor={speedGroupId} className="text-xs font-medium text-slate-500">
             倍速
@@ -223,6 +246,27 @@ export default function ListeningAudioPlayer({
           </div>
           <div className="whitespace-pre-wrap text-sm leading-7 text-slate-700">
             {transcript}
+          </div>
+        </div>
+      ) : null}
+
+      {hasAnalyses && isAnalysisVisible ? (
+        <div className="mt-5 rounded-[1rem] border border-slate-200 bg-slate-50 px-4 py-3">
+          <div className="mb-3 text-sm font-semibold text-slate-900">
+            解析
+          </div>
+          <div className="space-y-4">
+            {availableAnalyses.map((group) => (
+              <section key={group.id} className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                {/* <div className="mb-2 text-sm font-semibold text-slate-900">
+                  题组 {group.groupNo}
+                  {group.title?.trim() ? ` · ${group.title.trim()}` : ""}
+                </div> */}
+                <div className="whitespace-pre-wrap text-sm leading-7 text-slate-700">
+                  {group.explain}
+                </div>
+              </section>
+            ))}
           </div>
         </div>
       ) : null}

@@ -1018,6 +1018,12 @@ export default function ListeningPracticePanel({
                   src={currentPart.audioUrl}
                   title={`${paper.title} Test ${paper.testNo} · Part ${currentPart.partNo}`}
                   transcript={currentPart.transcript}
+                  analyses={currentPart.groups.map((group) => ({
+                    id: group.id,
+                    groupNo: group.groupNo,
+                    title: group.title,
+                    explain: group.explain,
+                  }))}
                 />
               </div>
             ) : null}

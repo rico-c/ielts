@@ -14,10 +14,13 @@ const CONFIG = {
   overwrite: false,
   dryRun: false,
   limit: 0,
-  location: process.env.GOOGLE_CLOUD_LOCATION || "global",
-  model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
-  projectId: process.env.GOOGLE_CLOUD_PROJECT || "gen-lang-client-0788141694",
-  pollIntervalMs: Number(process.env.GEMINI_POLL_INTERVAL_MS || 1500),
+  workersAiUrl: process.env.WORKERS_AI_URL || "https://llm.ricardocao-biker.workers.dev",
+  model: process.env.WORKERS_AI_MODEL || "workers-ai",
+  maxRetries: Number(process.env.WORKERS_AI_MAX_RETRIES || 3),
+  retryDelayMs: Number(process.env.WORKERS_AI_RETRY_DELAY_MS || 2000),
+  pollIntervalMs: Number(
+    process.env.WORKERS_AI_POLL_INTERVAL_MS || process.env.GEMINI_POLL_INTERVAL_MS || 1500,
+  ),
   ids: [],
 };
 
@@ -41,21 +44,21 @@ function parseArgs(argv) {
     else if (arg === "--overwrite") options.overwrite = true;
     else if (arg === "--dry-run") options.dryRun = true;
     else if (arg === "--limit") options.limit = Number(argv[++i] || options.limit);
-    else if (arg === "--location") options.location = argv[++i] || options.location;
     else if (arg === "--model") options.model = argv[++i] || options.model;
-    else if (arg === "--project-id") options.projectId = argv[++i] || options.projectId;
+    else if (arg === "--workers-ai-url") options.workersAiUrl = argv[++i] || options.workersAiUrl;
+    else if (arg === "--max-retries") options.maxRetries = Number(argv[++i] || options.maxRetries);
+    else if (arg === "--retry-delay-ms") options.retryDelayMs = Number(argv[++i] || options.retryDelayMs);
     else if (arg === "--poll-interval-ms") options.pollIntervalMs = Number(argv[++i] || options.pollIntervalMs);
     else if (arg === "--id") options.ids.push(argv[++i]);
     else if (arg === "--help" || arg === "-h") {
       console.log(`Usage:
   node scripts/generate-listening-group-analyses.mjs [--db ielts] [--remote|--local] [--overwrite] [--dry-run]
-                                                     [--limit 10] [--location global] [--model gemini-2.5-flash]
-                                                     [--project-id your-gcp-project] [--poll-interval-ms 1500]
+                                                     [--limit 10] [--model workers-ai]
+                                                     [--workers-ai-url https://llm.ricardocao-biker.workers.dev]
+                                                     [--max-retries 3] [--retry-delay-ms 2000] [--poll-interval-ms 1500]
                                                      [--id PAPER_PART_ID]
 
 Examples:
-  GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json \\
-  GOOGLE_CLOUD_PROJECT=your-gcp-project \\
   node scripts/generate-listening-group-analyses.mjs --remote --limit 3
 
   node scripts/generate-listening-group-analyses.mjs --local --overwrite --id paper_part_123
@@ -63,10 +66,10 @@ Examples:
 Notes:
   1. Reads paper_parts where module = 'listening' and transcript is available.
   2. Loads question_groups and questions under each listening part.
-  3. Uses Vertex AI Gemini to generate Chinese answer analyses per question group.
-  4. Stores a JSON payload into question_groups.test.
+  3. Uses Cloudflare Worker AI to generate Chinese answer analyses per question group.
+  4. Stores plain-text analyses into question_groups.test.
   5. Requires question_groups.test column to exist.
-  6. Uses Application Default Credentials / service account auth.
+  6. Worker endpoint defaults to https://llm.ricardocao-biker.workers.dev.
 `);
       process.exit(0);
     } else {
@@ -82,12 +85,20 @@ Notes:
     throw new Error("--poll-interval-ms must be a positive number.");
   }
 
-  if (!options.projectId) {
-    throw new Error("Missing Google Cloud project id. Pass --project-id or set GOOGLE_CLOUD_PROJECT.");
+  if (!Number.isFinite(options.maxRetries) || options.maxRetries < 0) {
+    throw new Error("--max-retries must be a non-negative number.");
+  }
+
+  if (!Number.isFinite(options.retryDelayMs) || options.retryDelayMs <= 0) {
+    throw new Error("--retry-delay-ms must be a positive number.");
   }
 
   if (!options.model) {
-    throw new Error("Missing Vertex AI model. Pass --model or set GEMINI_MODEL.");
+    throw new Error("Missing Worker AI model label. Pass --model or set WORKERS_AI_MODEL.");
+  }
+
+  if (!options.workersAiUrl) {
+    throw new Error("Missing Worker AI URL. Pass --workers-ai-url or set WORKERS_AI_URL.");
   }
 
   return options;
@@ -123,33 +134,6 @@ function extractRowsFromD1Json(raw) {
   }
 
   return rows;
-}
-
-async function getGoogleAccessToken() {
-  let GoogleAuth;
-
-  try {
-    ({ GoogleAuth } = await import("google-auth-library"));
-  } catch {
-    throw new Error(
-      'Missing dependency "google-auth-library". Run `npm i` in /Users/rico/Desktop/ielts first.',
-    );
-  }
-
-  const auth = new GoogleAuth({
-    scopes: ["https://www.googleapis.com/auth/cloud-platform"],
-  });
-  const client = await auth.getClient();
-  const tokenResponse = await client.getAccessToken();
-  const accessToken = typeof tokenResponse === "string" ? tokenResponse : tokenResponse?.token;
-
-  if (!accessToken) {
-    throw new Error(
-      "Failed to obtain Google access token. Check GOOGLE_APPLICATION_CREDENTIALS or ADC setup.",
-    );
-  }
-
-  return accessToken;
 }
 
 function sleep(ms) {
@@ -329,105 +313,177 @@ async function fetchQuestionsForGroups(options, groupIds) {
 }
 
 function buildPrompt(part, group) {
-  const promptPayload = {
-    task: "为 IELTS listening 题组生成中文答案解析",
-    requirements: [
-      "只输出 JSON，不要 markdown，不要额外说明。",
-      "语言必须是简体中文。",
-      "每道题都要给出 concise 但明确的中文解析。",
-      "解析必须优先依据 transcript、题干、选项和正确答案。",
-      "如果 transcript 证据不足，可以说明'转写中未直接出现原句，但可根据语义对应判断'。",
-      "不要捏造题目内容，不要修改题号，不要输出不存在的题目。",
-    ],
-    outputSchema: {
-      groupSummaryZh: "字符串，概括这个题组考什么",
-      analyses: [
-        {
-          questionId: "字符串",
-          questionNo: "数字",
-          answer: "字符串或字符串数组，使用数据库中的正确答案展示值",
-          analysisZh: "字符串，2-4句中文解析",
-        },
-      ],
-    },
-    listeningPart: {
-      partId: part.partId,
-      partNo: part.partNo,
-      title: part.partTitle,
-      transcript: part.transcript,
-    },
-    questionGroup: {
-      groupId: group.groupId,
-      groupNo: group.groupNo,
-      title: group.groupTitle,
-      questionType: group.questionType,
-      answerRule: group.answerRule,
-      instructionText: stripHtml(group.instructionHtml),
-      contentText: stripHtml(group.contentHtml),
-      sharedOptions: group.sharedOptions.map((option) => ({
-        label: option.label,
-        text: option.text,
-      })),
-      questions: group.questions.map((question) => ({
-        questionId: question.id,
-        questionNo: question.questionNo,
-        stem: stripHtml(question.stem),
-        subLabel: question.subLabel,
-        acceptedAnswers: question.acceptedAnswers.map((item) => item.display),
-      })),
-    },
-  };
+  const sharedOptionsText =
+    group.sharedOptions.length > 0
+      ? group.sharedOptions
+          .map((option) => `${option.label || option.id}. ${option.text}`.trim())
+          .join("\n")
+      : "无";
 
-  return JSON.stringify(promptPayload, null, 2);
+  const questionsText = group.questions
+    .map((question) => {
+      const answers =
+        question.acceptedAnswers.length <= 1
+          ? (question.acceptedAnswers[0]?.display ?? "")
+          : question.acceptedAnswers.map((item) => item.display).join(" / ");
+
+      return [
+        `题号: ${question.questionNo}`,
+        `questionId: ${question.id}`,
+        `题干: ${stripHtml(question.stem) || "无"}`,
+        `subLabel: ${question.subLabel || "无"}`,
+        `正确答案: ${answers || "无"}`,
+      ].join("\n");
+    })
+    .join("\n\n");
+
+  return `请为下面这组 IELTS Listening 题目生成中文答案解析。
+
+输出要求：
+1. 只输出纯文本，不要 JSON，不要 Markdown 代码块，不要额外前言或结尾。
+2. 语言必须是简体中文。
+3. 开头先写一行：题组总结：...
+4. 然后按题号逐题输出，每题必须严格使用下面格式：
+第X题
+答案：...
+解析：...
+
+5. 每题解析控制在2到4句，优先依据 transcript、题干、选项和正确答案。
+6. 如果 transcript 证据不足，可以明确写“转写中未直接出现原句，但可根据语义对应判断”。
+7. 不要捏造题目内容，不要修改题号，不要遗漏题目。
+
+听力信息：
+- partId: ${part.partId}
+- partNo: ${part.partNo}
+- title: ${part.partTitle || "无"}
+
+Transcript:
+${part.transcript}
+
+题组信息：
+- groupId: ${group.groupId}
+- groupNo: ${group.groupNo}
+- title: ${group.groupTitle || "无"}
+- questionType: ${group.questionType || "无"}
+- answerRule: ${group.answerRule || "无"}
+- instructionText: ${stripHtml(group.instructionHtml) || "无"}
+- contentText: ${stripHtml(group.contentHtml) || "无"}
+
+共享选项：
+${sharedOptionsText}
+
+题目列表：
+${questionsText}`;
 }
 
-function extractTextFromCandidate(candidate) {
-  const parts = Array.isArray(candidate?.content?.parts) ? candidate.content.parts : [];
-  return parts
-    .map((part) => (typeof part?.text === "string" ? part.text : ""))
-    .join("")
-    .trim();
-}
-
-function parseJsonResponse(text) {
+function normalizePlainTextResponse(text) {
   if (!text) {
-    throw new Error("Vertex AI returned empty text.");
+    throw new Error("Worker AI returned empty text.");
   }
 
-  const fencedMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const raw = fencedMatch ? fencedMatch[1].trim() : text.trim();
-  return JSON.parse(raw);
+  const fencedMatch = text.match(/```(?:text|markdown)?\s*([\s\S]*?)```/i);
+  const raw = fencedMatch ? fencedMatch[1] : text;
+  return raw.trim();
 }
 
-function getVertexApiBaseUrl(location) {
-  return location === "global"
-    ? "https://aiplatform.googleapis.com/v1"
-    : `https://${location}-aiplatform.googleapis.com/v1`;
+function extractTextFromWorkersAI(aiResult) {
+  const nonEmpty = (value) => {
+    if (typeof value !== "string") return "";
+    return value.trim();
+  };
+
+  const pickMessageContent = (value) => {
+    if (typeof value === "string") return value;
+    if (!Array.isArray(value)) return "";
+
+    return value
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (!item || typeof item !== "object") return "";
+        if (typeof item.text === "string") return item.text;
+        if (typeof item.content === "string") return item.content;
+        if (typeof item.value === "string") return item.value;
+        return "";
+      })
+      .filter(Boolean)
+      .join("\n");
+  };
+
+  if (Array.isArray(aiResult)) {
+    const lastTask = aiResult[aiResult.length - 1];
+    if (!lastTask || typeof lastTask !== "object") return "";
+
+    const nestedResponse = lastTask.response;
+    const nestedRaw = nonEmpty(nestedResponse);
+    if (nestedRaw) return nestedRaw;
+
+    if (nestedResponse && typeof nestedResponse === "object") {
+      const nestedText = nonEmpty(nestedResponse.response);
+      if (nestedText) return nestedText;
+    }
+  }
+
+  if (!aiResult || typeof aiResult !== "object") return "";
+
+  const rootResponse = nonEmpty(aiResult.response);
+  if (rootResponse) return rootResponse;
+
+  const resultObj = aiResult.result;
+  if (resultObj && typeof resultObj === "object") {
+    const resultResponse = nonEmpty(resultObj.response);
+    if (resultResponse) return resultResponse;
+
+    const resultChoices = Array.isArray(resultObj.choices) ? resultObj.choices : [];
+    if (resultChoices[0] && typeof resultChoices[0] === "object") {
+      const message = resultChoices[0].message;
+      const content = pickMessageContent(message?.content);
+      if (content) return content;
+    }
+  }
+
+  const rootChoices = Array.isArray(aiResult.choices) ? aiResult.choices : [];
+  if (rootChoices[0] && typeof rootChoices[0] === "object") {
+    const message = rootChoices[0].message;
+    const content = pickMessageContent(message?.content);
+    if (content) return content;
+  }
+
+  return "";
 }
 
-async function generateGroupAnalysis(accessToken, options, part, group) {
-  const endpoint = `${getVertexApiBaseUrl(options.location)}/projects/${encodeURIComponent(options.projectId)}/locations/${encodeURIComponent(options.location)}/publishers/google/models/${encodeURIComponent(options.model)}:generateContent`;
+function isRetryableGenerateError(error) {
+  const message = error instanceof Error ? error.message : String(error);
+
+  return (
+    message.includes("Worker AI returned empty text.") ||
+    message.includes("Unexpected Worker AI payload:") ||
+    message.includes("fetch failed") ||
+    /Worker AI request failed \(5\d{2}\b/.test(message) ||
+    /Worker AI request failed \(429\b/.test(message)
+  );
+}
+
+async function generateGroupAnalysis(options, part, group) {
   const prompt = buildPrompt(part, group);
 
-  const response = await fetch(endpoint, {
+  const response = await fetch(options.workersAiUrl, {
     method: "POST",
     headers: {
-      authorization: `Bearer ${accessToken}`,
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      contents: [
+      messages: [
+        {
+          role: "system",
+          content:
+            "你是一个严谨的 IELTS 听力老师。你必须只输出纯文本格式的题目解析，不要 JSON，不要 markdown 代码块，不要补充任何解释文字。",
+        },
         {
           role: "user",
-          parts: [{ text: prompt }],
+          content: prompt,
         },
       ],
-      generationConfig: {
-        temperature: 0.2,
-        topP: 0.9,
-        maxOutputTokens: 4096,
-        responseMimeType: "application/json",
-      },
+      temperature: 0.2,
     }),
   });
 
@@ -442,82 +498,52 @@ async function generateGroupAnalysis(accessToken, options, part, group) {
 
   if (!response.ok) {
     throw new Error(
-      `Vertex AI request failed (${response.status} ${response.statusText}): ${
+      `Worker AI request failed (${response.status} ${response.statusText}): ${
         typeof parsedBody === "string" ? parsedBody : JSON.stringify(parsedBody)
       }`,
     );
   }
 
-  const candidate = Array.isArray(parsedBody?.candidates) ? parsedBody.candidates[0] : null;
-  const text = extractTextFromCandidate(candidate);
-  const parsed = parseJsonResponse(text);
+  const text = extractTextFromWorkersAI(parsedBody);
+  const normalizedText = normalizePlainTextResponse(text);
 
-  if (!parsed || typeof parsed !== "object") {
-    throw new Error(`Unexpected Vertex AI payload: ${JSON.stringify(parsedBody)}`);
+  if (!normalizedText) {
+    throw new Error(`Unexpected Worker AI payload: ${JSON.stringify(parsedBody)}`);
   }
 
-  const analyses = Array.isArray(parsed.analyses) ? parsed.analyses : [];
-
-  return {
-    groupId: group.groupId,
-    groupNo: group.groupNo,
-    questionType: group.questionType,
-    generatedAt: new Date().toISOString(),
-    model: options.model,
-    groupSummaryZh:
-      typeof parsed.groupSummaryZh === "string" ? parsed.groupSummaryZh.trim() : "",
-    analyses: analyses
-      .map((item) => ({
-        questionId: typeof item?.questionId === "string" ? item.questionId : "",
-        questionNo:
-          typeof item?.questionNo === "number"
-            ? item.questionNo
-            : Number(item?.questionNo || 0),
-        answer: Array.isArray(item?.answer)
-          ? item.answer.map((entry) => String(entry))
-          : typeof item?.answer === "string"
-            ? item.answer
-            : "",
-        analysisZh:
-          typeof item?.analysisZh === "string" ? item.analysisZh.trim() : "",
-      }))
-      .filter((item) => item.questionId && item.questionNo > 0 && item.analysisZh),
-  };
+  return normalizedText;
 }
 
-function buildStoredPayload(generated, group) {
-  const byQuestionId = new Map(generated.analyses.map((item) => [item.questionId, item]));
+async function generateGroupAnalysisWithRetry(options, part, group) {
+  const maxAttempts = options.maxRetries + 1;
+  let lastError = null;
 
-  const analyses = group.questions.map((question) => {
-    const generatedItem = byQuestionId.get(question.id);
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await generateGroupAnalysis(options, part, group);
+    } catch (error) {
+      lastError = error;
 
-    return {
-      questionId: question.id,
-      questionNo: question.questionNo,
-      answer:
-        question.acceptedAnswers.length <= 1
-          ? (question.acceptedAnswers[0]?.display ?? "")
-          : question.acceptedAnswers.map((item) => item.display),
-      analysisZh: generatedItem?.analysisZh || "",
-    };
-  });
+      if (attempt >= maxAttempts || !isRetryableGenerateError(error)) {
+        throw error;
+      }
 
-  return {
-    source: "vertex-ai-gemini",
-    model: generated.model,
-    generatedAt: generated.generatedAt,
-    groupId: group.groupId,
-    groupNo: group.groupNo,
-    questionType: group.questionType,
-    groupSummaryZh: generated.groupSummaryZh,
-    analyses,
-  };
+      const message = error instanceof Error ? error.message : String(error);
+      const delayMs = options.retryDelayMs * attempt;
+      console.warn(
+        `  Retry ${attempt}/${options.maxRetries} for ${group.groupId} after error: ${message}`,
+      );
+      await sleep(delayMs);
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
-async function updateGroupTestField(options, groupId, payload) {
+async function updateGroupTestField(options, groupId, text) {
   const sql = `
     UPDATE question_groups
-    SET test = ${sqlQuote(JSON.stringify(payload))}
+    SET test = ${sqlQuote(text)}
     WHERE id = ${sqlQuote(groupId)};
   `;
 
@@ -612,8 +638,8 @@ async function main() {
     `Prepared ${parts.length} listening paper_parts and ${groupIds.length} question_groups from ${options.db} (${options.remote ? "remote" : "local"}).`,
   );
 
-  const accessToken = await getGoogleAccessToken();
   let updatedCount = 0;
+  let failedCount = 0;
 
   for (const part of parts) {
     console.log(`Part ${part.partId} (part ${part.partNo}) groups=${part.groups.length}`);
@@ -624,23 +650,31 @@ async function main() {
         continue;
       }
 
-      const generated = await generateGroupAnalysis(accessToken, options, part, group);
-      const payload = buildStoredPayload(generated, group);
+      try {
+        const generatedText = await generateGroupAnalysisWithRetry(options, part, group);
 
-      if (!options.dryRun) {
-        await updateGroupTestField(options, group.groupId, payload);
+        if (!options.dryRun) {
+          await updateGroupTestField(options, group.groupId, generatedText);
+        }
+
+        updatedCount += 1;
+        console.log(
+          `  ${options.dryRun ? "DRY RUN" : "Updated"} ${group.groupId}: questions=${group.questions.length}`,
+        );
+      } catch (error) {
+        failedCount += 1;
+        console.error(
+          `  Failed ${group.groupId}: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
-
-      updatedCount += 1;
-      console.log(
-        `  ${options.dryRun ? "DRY RUN" : "Updated"} ${group.groupId}: questions=${group.questions.length}`,
-      );
 
       await sleep(options.pollIntervalMs);
     }
   }
 
-  console.log(`${options.dryRun ? "Would update" : "Updated"} ${updatedCount} question_groups rows.`);
+  console.log(
+    `${options.dryRun ? "Would update" : "Updated"} ${updatedCount} question_groups rows; failed ${failedCount}.`,
+  );
 }
 
 main().catch((error) => {
