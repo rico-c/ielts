@@ -805,6 +805,7 @@ export default function ListeningPracticePanel({
   const [activePartId, setActivePartId] = useState(
     () => paper.parts[0]?.id ?? "",
   );
+  const [isReadingAnalysisVisible, setIsReadingAnalysisVisible] = useState(false);
   const [submittedParts, setSubmittedParts] = useState<Record<string, boolean>>(
     {},
   );
@@ -848,6 +849,7 @@ export default function ListeningPracticePanel({
     }
   }, [activePartId, activePartNo, paper]);
   const currentIsWriting = paper.module === "writing";
+  const currentIsReading = paper.module === "reading";
   const currentSubmitted = currentPart
     ? Boolean(submittedParts[currentPart.id])
     : false;
@@ -920,6 +922,27 @@ export default function ListeningPracticePanel({
         ),
       ).length
     : 0;
+  const currentReadingAnalyses = useMemo(
+    () =>
+      currentIsReading && currentPart
+        ? currentPart.groups
+            .filter(
+              (group) =>
+                typeof group.explain === "string" && group.explain.trim().length > 0,
+            )
+            .map((group) => ({
+              id: group.id,
+              groupNo: group.groupNo,
+              title: group.title,
+              explain: group.explain?.trim() ?? "",
+            }))
+        : [],
+    [currentIsReading, currentPart],
+  );
+
+  useEffect(() => {
+    setIsReadingAnalysisVisible(false);
+  }, [activePartId, paper.id]);
 
   return (
     <div className="space-y-6">
@@ -964,6 +987,17 @@ export default function ListeningPracticePanel({
               <h2 className="text-xl font-extrabold tracking-tight text-slate-900">
                 {paper.title} · Test {paper.testNo} · {moduleLabel}
               </h2>
+            ) : null}
+            {currentIsReading && currentReadingAnalyses.length > 0 ? (
+              <button
+                type="button"
+                onClick={() =>
+                  setIsReadingAnalysisVisible((current) => !current)
+                }
+                className="rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:border-slate-400 hover:text-slate-900"
+              >
+                解析
+              </button>
             ) : null}
             <button
               type="button"
@@ -1039,6 +1073,7 @@ export default function ListeningPracticePanel({
                 onAnswerChange={updateAnswer}
               />
             ) : null}
+
           </div>
 
           <div className="space-y-4 px-4 py-5 sm:px-6 sm:py-6">
@@ -1112,6 +1147,21 @@ export default function ListeningPracticePanel({
                     return (
                       <>
                         <div className="space-y-3">
+                          {currentIsReading &&
+                          isReadingAnalysisVisible &&
+                          typeof group.explain === "string" &&
+                          group.explain.trim().length > 0 ? (
+                            <section className="rounded-[1.25rem] border border-slate-200 bg-slate-50 px-4 py-3">
+                              <div className="mb-2 text-sm font-semibold text-slate-900">
+                                解析
+                                {/* {group.title?.trim() ? ` · ${group.title.trim()}` : ""} */}
+                              </div>
+                              <div className="whitespace-pre-wrap text-sm leading-7 text-slate-700">
+                                {group.explain.trim()}
+                              </div>
+                            </section>
+                          ) : null}
+
                           {/* <div className="flex flex-wrap items-start justify-between gap-3">
                           {group.answerRule ? (
                             <div className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">

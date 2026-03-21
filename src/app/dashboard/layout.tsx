@@ -21,9 +21,9 @@ import type { LucideIcon } from "lucide-react";
 const menuItems = [
   { href: "/dashboard", label: "概览", icon: LayoutDashboard },
   { href: "/dashboard/practice", label: "剑雅真题", icon: BookOpen },
+  { href: "/dashboard/mock-exam", label: "口语模考", icon: SquareChartGantt },
   { href: "/dashboard/word-review", label: "单词复习", icon: NotebookPen },
   { href: "/dashboard/materials", label: "独家资料", icon: FileText },
-  { href: "/dashboard/mock-exam", label: "模拟考试", icon: SquareChartGantt },
   { href: "/dashboard/settings", label: "设置", icon: Settings },
 ] as const;
 
