@@ -8,7 +8,7 @@ const isPublicRoute = createRouteMatcher([
   "/privacy",
   "/terms",
   "/api/ielts/tests/latest",
-  "/api/elevenlabs/conversation-token",
+  // "/api/elevenlabs/conversation-token",
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
