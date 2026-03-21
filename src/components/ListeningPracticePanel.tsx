@@ -805,7 +805,7 @@ export default function ListeningPracticePanel({
   const [activePartId, setActivePartId] = useState(
     () => paper.parts[0]?.id ?? "",
   );
-  const [isReadingAnalysisVisible, setIsReadingAnalysisVisible] = useState(false);
+  const [isAnalysisVisible, setIsAnalysisVisible] = useState(false);
   const [submittedParts, setSubmittedParts] = useState<Record<string, boolean>>(
     {},
   );
@@ -922,9 +922,9 @@ export default function ListeningPracticePanel({
         ),
       ).length
     : 0;
-  const currentReadingAnalyses = useMemo(
+  const currentAnalyses = useMemo(
     () =>
-      currentIsReading && currentPart
+      currentPart
         ? currentPart.groups
             .filter(
               (group) =>
@@ -937,11 +937,11 @@ export default function ListeningPracticePanel({
               explain: group.explain?.trim() ?? "",
             }))
         : [],
-    [currentIsReading, currentPart],
+    [currentPart],
   );
 
   useEffect(() => {
-    setIsReadingAnalysisVisible(false);
+    setIsAnalysisVisible(false);
   }, [activePartId, paper.id]);
 
   return (
@@ -988,12 +988,10 @@ export default function ListeningPracticePanel({
                 {paper.title} · Test {paper.testNo} · {moduleLabel}
               </h2>
             ) : null}
-            {currentIsReading && currentReadingAnalyses.length > 0 ? (
+            {currentAnalyses.length > 0 ? (
               <button
                 type="button"
-                onClick={() =>
-                  setIsReadingAnalysisVisible((current) => !current)
-                }
+                onClick={() => setIsAnalysisVisible((current) => !current)}
                 className="rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:border-slate-400 hover:text-slate-900"
               >
                 解析
@@ -1028,12 +1026,6 @@ export default function ListeningPracticePanel({
                 src={currentPart.audioUrl}
                 title={`${paper.title} Test ${paper.testNo} · Part ${currentPart.partNo}`}
                 transcript={currentPart.transcript}
-                analyses={currentPart.groups.map((group) => ({
-                  id: group.id,
-                  groupNo: group.groupNo,
-                  title: group.title,
-                  explain: group.explain,
-                }))}
               />
             </div>
           ) : null}
@@ -1147,8 +1139,7 @@ export default function ListeningPracticePanel({
                     return (
                       <>
                         <div className="space-y-3">
-                          {currentIsReading &&
-                          isReadingAnalysisVisible &&
+                          {isAnalysisVisible &&
                           typeof group.explain === "string" &&
                           group.explain.trim().length > 0 ? (
                             <section className="rounded-[1.25rem] border border-slate-200 bg-slate-50 px-4 py-3">
