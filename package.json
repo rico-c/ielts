@@ -50,6 +50,7 @@
 		"lint": "next lint",
 		"preview": "node scripts/generate-blog-data.js && opennextjs-cloudflare build && opennextjs-cloudflare preview",
 		"generate:listening-analyses": "node scripts/generate-listening-group-analyses.mjs --remote",
+		"generate:speaking-audio": "node scripts/generate-speaking-question-audio.mjs --remote",
 		"translate:transcript-detail": "node scripts/translate-transcript-detail-to-test.mjs --remote",
 		"transcribe:paper-parts": "node scripts/transcribe-paper-parts.mjs --remote",
 		"start": "next start"
