@@ -45,6 +45,7 @@
 		"dev": "node scripts/generate-blog-data.js && next dev --webpack",
 		"dev:turbo": "node scripts/generate-blog-data.js && next dev --turbopack",
 		"import:d1": "node scripts/import-input-to-d1.mjs --remote",
+		"import:speaking": "node scripts/import-speaking-questions.mjs --remote",
 		"import:word-review": "node scripts/import-word-review-json.mjs --remote",
 		"lint": "next lint",
 		"preview": "node scripts/generate-blog-data.js && opennextjs-cloudflare build && opennextjs-cloudflare preview",
