@@ -31,7 +31,7 @@ const menuItems: DashboardMenuItem[] = [
   { href: "/dashboard/practice", label: "剑雅真题", icon: BookOpen },
   { href: "/dashboard/mock-exam", label: "口语模考", icon: SquareChartGantt },
   { href: "/dashboard/intensive-listening", label: "精听练习", icon: Headphones },
-  { href: "/dashboard/shadowing", label: "跟读练习", icon: Mic2 },
+  // { href: "/dashboard/shadowing", label: "跟读练习", icon: Mic2 },
   { href: "/dashboard/word-review", label: "单词复习", icon: NotebookPen },
   { href: "/dashboard/materials", label: "独家资料", icon: FileText },
   { href: "/dashboard/settings", label: "设置", icon: Settings },
