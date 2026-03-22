@@ -41,6 +41,7 @@ export type ListeningPart = {
   contentHtml: string | null;
   audioUrl: string | null;
   transcript: string | null;
+  transcriptDetail: ListeningTranscriptParagraph[];
   sortOrder: number;
   groups: ListeningQuestionGroup[];
 };
@@ -52,6 +53,20 @@ export type ListeningPracticePaper = {
   testNo: number | null;
   module: "listening" | "reading" | "writing";
   parts: ListeningPart[];
+};
+
+export type ListeningTranscriptSentence = {
+  text: string;
+  start: number;
+  end: number;
+  cn: string | null;
+};
+
+export type ListeningTranscriptParagraph = {
+  sentences: ListeningTranscriptSentence[];
+  numWords: number | null;
+  start: number;
+  end: number;
 };
 
 type PaperRow = {
@@ -69,6 +84,7 @@ type PartRow = {
   content_html: string | null;
   audio_url: string | null;
   transcript: string | null;
+  transcript_detail: string | null;
   sort_order: number;
 };
 
@@ -186,6 +202,52 @@ function parseGroupImageUrl(raw: string | null) {
   }
 }
 
+function toFiniteNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function parseTranscriptDetail(raw: string | null): ListeningTranscriptParagraph[] {
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .map((item: any) => {
+        const sentences: ListeningTranscriptSentence[] = Array.isArray(item?.sentences)
+          ? (item.sentences as any[])
+              .map((sentence: any) => ({
+                text: typeof sentence?.text === "string" ? sentence.text.trim() : "",
+                start: toFiniteNumber(sentence?.start),
+                end: toFiniteNumber(sentence?.end),
+                cn: typeof sentence?.cn === "string" && sentence.cn.trim().length > 0 ? sentence.cn.trim() : null,
+              }))
+              .filter((sentence: ListeningTranscriptSentence) => sentence.text.length > 0)
+          : [];
+
+        const paragraphStart = typeof item?.start === "number"
+          ? item.start
+          : (sentences[0]?.start ?? 0);
+        const paragraphEnd = typeof item?.end === "number"
+          ? item.end
+          : (sentences[sentences.length - 1]?.end ?? paragraphStart);
+
+        return {
+          sentences,
+          numWords: typeof item?.num_words === "number" && Number.isFinite(item.num_words)
+            ? item.num_words
+            : null,
+          start: paragraphStart,
+          end: paragraphEnd,
+        } satisfies ListeningTranscriptParagraph;
+      })
+      .filter((item: ListeningTranscriptParagraph) => item.sentences.length > 0);
+  } catch {
+    return [];
+  }
+}
+
 export async function getAvailableTestNos(bookNo: number, module: "listening" | "reading" | "writing") {
   const db = await getDb();
   const title = getPaperTitle(bookNo);
@@ -236,6 +298,7 @@ export async function getPracticePaper(bookNo: number, testNo: number, module: "
       .prepare(
         `
           SELECT id, part_no, title, instruction_html, content_html, audio_url, transcript, sort_order
+                 , transcript_detail
           FROM paper_parts
           WHERE paper_id = ?1
             AND module = ?2
@@ -325,6 +388,7 @@ export async function getPracticePaper(bookNo: number, testNo: number, module: "
     contentHtml: row.content_html,
     audioUrl: row.audio_url,
     transcript: row.transcript,
+    transcriptDetail: parseTranscriptDetail(row.transcript_detail),
     sortOrder: row.sort_order,
     groups: (groupsByPart.get(row.id) ?? []).sort((a, b) => a.groupNo - b.groupNo),
   }));

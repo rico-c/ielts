@@ -8,7 +8,14 @@ import {
   RotateCcw,
   RotateCw,
 } from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useId,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 
 const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 1.75, 2];
 const SEEK_SECONDS = 5;
@@ -23,15 +30,34 @@ function formatTime(seconds: number) {
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
-export default function ListeningAudioPlayer({
-  src,
-  title,
-  transcript,
-}: {
+export type ListeningAudioPlayerHandle = {
+  play: () => Promise<void>;
+  pause: () => void;
+  seekTo: (nextTime: number) => void;
+  seekBy: (deltaSeconds: number) => void;
+  getCurrentTime: () => number;
+};
+
+type ListeningAudioPlayerProps = {
   src: string;
   title?: string;
   transcript?: string | null;
-}) {
+  showTranscriptToggle?: boolean;
+  onTimeUpdate?: (currentTime: number) => void;
+  onLoadedMetadata?: (duration: number) => void;
+};
+
+const ListeningAudioPlayer = forwardRef<
+  ListeningAudioPlayerHandle,
+  ListeningAudioPlayerProps
+>(function ListeningAudioPlayer({
+  src,
+  title,
+  transcript,
+  showTranscriptToggle = true,
+  onTimeUpdate,
+  onLoadedMetadata,
+}, ref) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const speedGroupId = useId();
   const [duration, setDuration] = useState(0);
@@ -57,18 +83,6 @@ export default function ListeningAudioPlayer({
     setIsTranscriptVisible(false);
   }, [src]);
 
-  async function togglePlayback() {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    if (audio.paused) {
-      await audio.play();
-      return;
-    }
-
-    audio.pause();
-  }
-
   function seekTo(nextTime: number) {
     const audio = audioRef.current;
     if (!audio) return;
@@ -76,6 +90,7 @@ export default function ListeningAudioPlayer({
     const safeTime = Math.max(0, Math.min(nextTime, audio.duration || Infinity));
     audio.currentTime = safeTime;
     setCurrentTime(safeTime);
+    onTimeUpdate?.(safeTime);
   }
 
   function seekBy(deltaSeconds: number) {
@@ -84,6 +99,40 @@ export default function ListeningAudioPlayer({
 
     seekTo(audio.currentTime + deltaSeconds);
   }
+
+  async function play() {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    await audio.play();
+  }
+
+  function pause() {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.pause();
+  }
+
+  async function togglePlayback() {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (audio.paused) {
+      await play();
+      return;
+    }
+
+    pause();
+  }
+
+  useImperativeHandle(ref, () => ({
+    play,
+    pause,
+    seekTo,
+    seekBy,
+    getCurrentTime: () => audioRef.current?.currentTime ?? 0,
+  }));
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
@@ -95,12 +144,16 @@ export default function ListeningAudioPlayer({
         onLoadStart={() => setIsAudioLoading(true)}
         onLoadedMetadata={(event) => {
           const nextDuration = event.currentTarget.duration;
-          setDuration(Number.isFinite(nextDuration) ? nextDuration : 0);
+          const safeDuration = Number.isFinite(nextDuration) ? nextDuration : 0;
+          setDuration(safeDuration);
           setIsAudioLoading(false);
+          onLoadedMetadata?.(safeDuration);
         }}
         onCanPlay={() => setIsAudioLoading(false)}
         onTimeUpdate={(event) => {
-          setCurrentTime(event.currentTarget.currentTime);
+          const nextTime = event.currentTarget.currentTime;
+          setCurrentTime(nextTime);
+          onTimeUpdate?.(nextTime);
         }}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
@@ -111,12 +164,11 @@ export default function ListeningAudioPlayer({
       </audio>
 
       <div className="rounded-[1.2rem] border border-[rgba(148,163,184,0.2)] bg-[rgba(255,255,255,0.92)] px-8 py-8 shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
-        {/* <div className="flex items-center justify-between gap-3">
-          <p className="truncate text-sm font-semibold text-slate-900">{title || "Listening Audio"}</p>
-          <div className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
-            {playbackRate}x
+        {title ? (
+          <div className="mb-4 text-sm font-semibold text-slate-900">
+            {title}
           </div>
-        </div> */}
+        ) : null}
 
         <div className="mt-0 flex flex-wrap items-center gap-2.5">
           <button
@@ -157,7 +209,7 @@ export default function ListeningAudioPlayer({
             +5s
           </button>
 
-          {hasTranscript ? (
+          {hasTranscript && showTranscriptToggle ? (
             <button
               type="button"
               onClick={() => setIsTranscriptVisible((current) => !current)}
@@ -218,7 +270,7 @@ export default function ListeningAudioPlayer({
         </div>
       </div>
 
-      {hasTranscript && isTranscriptVisible ? (
+      {hasTranscript && showTranscriptToggle && isTranscriptVisible ? (
         <div className="rounded-[1rem] border border-slate-200 bg-slate-50 px-4 py-3">
           <div className="mb-2 text-sm font-semibold text-slate-900">
             听力原文
@@ -230,4 +282,6 @@ export default function ListeningAudioPlayer({
       ) : null}
     </div>
   );
-}
+});
+
+export default ListeningAudioPlayer;
