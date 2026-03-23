@@ -7,7 +7,6 @@ import {
   NotebookPen,
   Sparkles,
 } from "lucide-react";
-import PricingSection from "@/components/PricingSection";
 
 const primaryActions = [
   {
