@@ -3,12 +3,13 @@
 import { UserButton } from "@clerk/nextjs";
 import {
   BookOpen,
+  ChartColumnIncreasing,
   ChevronLeft,
   ChevronRight,
-  FileText,
+  Crown,
+  FileCheck,
   Headphones,
   LayoutDashboard,
-  Mic2,
   NotebookPen,
   Rocket,
   Settings,
@@ -21,11 +22,14 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import PricingSection from "@/components/PricingSection";
+import XhsProCampaignCard from "@/components/XhsProCampaignCard";
+import { useMembership } from "@/hooks/useMembership";
 
 type DashboardMenuItem = {
   href: string;
   label: string;
   icon: LucideIcon;
+  requiresVip?: boolean;
 };
 
 const menuItems: DashboardMenuItem[] = [
@@ -39,7 +43,9 @@ const menuItems: DashboardMenuItem[] = [
   },
   // { href: "/dashboard/shadowing", label: "跟读练习", icon: Mic2 },
   { href: "/dashboard/word-review", label: "单词复习", icon: NotebookPen },
-  { href: "/dashboard/materials", label: "独家资料", icon: FileText },
+  { href: "/dashboard/materials", label: "独家资料", icon: FileCheck },
+  { href: "/dashboard/analytics", label: "学习分析", icon: ChartColumnIncreasing },
+  { href: "/dashboard/membership", label: "会员中心", icon: Crown, requiresVip: true },
   { href: "/dashboard/settings", label: "设置", icon: Settings },
 ];
 
@@ -87,9 +93,11 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
+  const { isVip } = useMembership();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
+  const visibleMenuItems = menuItems.filter((item) => !item.requiresVip || isVip);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -180,8 +188,9 @@ export default function DashboardLayout({
         <nav
           className={`flex-1 space-y-1 overflow-y-auto transition-all duration-300 p-2`}
         >
-          {menuItems.map((item) => {
-            const active = pathname === item.href;
+          {visibleMenuItems.map((item) => {
+            const active =
+              pathname === item.href || pathname.startsWith(`${item.href}/`);
 
             return (
               <Link
@@ -206,7 +215,9 @@ export default function DashboardLayout({
         </nav>
 
         {!collapsed ? (
-          <div className="px-4 pb-0">
+          <div className="mt-auto space-y-2 px-4 pb-0">
+            <XhsProCampaignCard collapsed={collapsed} isVip={isVip} />
+
             <div className="overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4 shadow-sm">
               <h3 className="font-bold text-gray-900">优秀雅思PRO会员</h3>
               <p className="mt-1 text-xs leading-5 text-slate-600">
@@ -215,9 +226,9 @@ export default function DashboardLayout({
               <button
                 type="button"
                 onClick={() => setPricingModalOpen(true)}
-                className="cursor-pointer mt-4 inline-flex gap-2 w-full items-center justify-center rounded-xl border border-white bg-white/80 px-4 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-white hover:border-blue-200 hover:text-blue-600 "
+                className="group mt-4 inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-white bg-white/80 px-4 py-2 text-sm font-semibold text-blue-700 transition-colors hover:border-blue-200 hover:bg-white hover:text-blue-600"
               >
-                <Rocket className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform duration-300" />
+                <Rocket className="h-4 w-4 text-blue-600 transition-transform duration-300 group-hover:scale-110" />
                 查看价格
               </button>
             </div>
