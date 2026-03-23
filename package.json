@@ -16,6 +16,7 @@
 		"@clerk/nextjs": "^6.36.7",
 		"@elevenlabs/react": "^0.14.2",
 		"@opennextjs/cloudflare": "1.14.0",
+		"dayjs": "^1.11.20",
 		"google-auth-library": "^9.15.1",
 		"lucide-react": "^0.577.0",
 		"next": "16.0.7",
