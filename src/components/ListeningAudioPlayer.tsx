@@ -163,12 +163,12 @@ const ListeningAudioPlayer = forwardRef<
         <source src={src} />
       </audio>
 
-      <div className="rounded-[1.2rem] border border-[rgba(148,163,184,0.2)] bg-[rgba(255,255,255,0.92)] px-8 py-8 shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
-        {title ? (
+      <div className="rounded-[1.2rem] border border-[rgba(148,163,184,0.2)] bg-[rgba(255,255,255,0.92)] px-8 py-6 shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
+        {/* {title ? (
           <div className="mb-4 text-sm font-semibold text-slate-900">
             {title}
           </div>
-        ) : null}
+        ) : null} */}
 
         <div className="mt-0 flex flex-wrap items-center gap-2.5">
           <button

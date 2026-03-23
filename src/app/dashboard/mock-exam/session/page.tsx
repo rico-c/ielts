@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import SpeakingPart1MockSession from "@/components/SpeakingPart1MockSession";
 import { getSpeakingMockTopic, type SpeakingTopicGroup } from "@/lib/speaking-db";
 
 type SearchParams = {
@@ -28,16 +29,30 @@ export default async function SpeakingMockSessionPage({ searchParams }: Props) {
     notFound();
   }
 
+  if (normalizedGroup === "part1") {
+    return (
+      <div className="flex h-full min-h-0 flex-col gap-4">
+        <div>
+          <Link
+            href="/dashboard/mock-exam"
+            className="inline-flex items-center rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:border-blue-200 hover:text-blue-700"
+          >
+            返回
+          </Link>
+        </div>
+
+        <div className="min-h-0 flex-1">
+          <SpeakingPart1MockSession topicId={normalizedTopicId} />
+        </div>
+      </div>
+    );
+  }
+
   const topic = await getSpeakingMockTopic(normalizedGroup, normalizedTopicId);
 
   if (!topic) {
     notFound();
   }
-
-  const summaryText =
-    topic.group === "part1"
-      ? `已接通 ${topic.questions.length} 道 Part 1 题目。`
-      : `已接通 ${topic.part2Questions.length} 道 Part 2 题目、${topic.requirements.length} 条 requirement 和 ${topic.part3Questions.length} 道 Part 3 题目。`;
 
   return (
     <div className="space-y-6">
@@ -56,32 +71,13 @@ export default async function SpeakingMockSessionPage({ searchParams }: Props) {
         </div>
         <h1 className="mt-5 text-3xl font-bold text-slate-900 sm:text-4xl">{topic.topic}</h1>
         <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
-          {topic.group === "part1" ? "Part 1 模考入口" : "Part 2 & Part 3 模考入口"}
+          Part 2 &amp; Part 3 的模考流程还没接到新的对话式界面里。
         </p>
-        <p className="mt-2 text-sm leading-7 text-slate-600 sm:text-base">{summaryText}</p>
-      </section>
-
-      <section className="grid gap-4 lg:grid-cols-3">
-        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Current Topic</div>
-          <div className="mt-2 text-xl font-bold text-slate-900">{topic.topic}</div>
-        </div>
-
-        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Mode</div>
-          <div className="mt-2 text-xl font-bold text-slate-900">
-            {topic.group === "part1" ? "Part 1" : "Part 2 & Part 3"}
-          </div>
-        </div>
-
-        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Status</div>
-          <div className="mt-2 text-xl font-bold text-slate-900">待补完整模考逻辑</div>
-        </div>
       </section>
 
       <section className="rounded-[1.75rem] border border-dashed border-slate-300 bg-slate-50 p-6 text-sm leading-7 text-slate-600">
-        这里先作为新的模考界面入口，题目上下文已经可以按 Topic 带进来。你后面补计时、录音、流程控制时，直接在这个页面继续扩展就行。
+        当前这一版先优先接通 Part 1 的问答录音流程。你后面如果继续补 Part 2 &amp; Part 3，
+        可以复用同一套题目拉取、录音缓存和统一提交结构。
       </section>
     </div>
   );

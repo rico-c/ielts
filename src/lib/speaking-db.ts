@@ -7,6 +7,7 @@ type SpeakingQuestionRow = {
   topic_id: string | null;
   question: string;
   requirement: string | null;
+  audio_url?: string | null;
 };
 
 export type SpeakingTopicGroup = "part1" | "part23";
@@ -32,6 +33,21 @@ export type SpeakingMockTopic = SpeakingPart1Topic | SpeakingPart23Topic;
 export type SpeakingMockCatalog = {
   part1Topics: SpeakingPart1Topic[];
   part23Topics: SpeakingPart23Topic[];
+};
+
+export type SpeakingPart1Question = {
+  id: number;
+  topic: string;
+  topicId: string;
+  question: string;
+  audioUrl: string | null;
+};
+
+export type SpeakingPart1MockDetail = {
+  group: "part1";
+  topic: string;
+  topicId: string;
+  questions: SpeakingPart1Question[];
 };
 
 function compareTopicText(left: string, right: string) {
@@ -142,4 +158,48 @@ export async function getSpeakingMockTopic(group: SpeakingTopicGroup, topicId: s
   const topics = group === "part1" ? catalog.part1Topics : catalog.part23Topics;
 
   return topics.find((topic) => topic.topicId === topicId) ?? null;
+}
+
+export async function getSpeakingPart1MockDetail(topicId: string): Promise<SpeakingPart1MockDetail | null> {
+  const topic = await getSpeakingMockTopic("part1", topicId);
+
+  if (!topic) {
+    return null;
+  }
+
+  const db = await getDatabase();
+  const { results } = await db
+    .prepare(
+      `
+        SELECT id, part, topic, topic_id, question, requirement, audio_url
+        FROM speaking_questions
+        WHERE part = 1
+          AND (
+            topic_id = ?1
+            OR ((topic_id IS NULL OR TRIM(topic_id) = '') AND topic = ?2)
+          )
+        ORDER BY id ASC
+      `,
+    )
+    .bind(topicId, topic.topic)
+    .all<SpeakingQuestionRow>();
+
+  const questions = (results ?? []).map((row) => ({
+    id: row.id,
+    topic: row.topic,
+    topicId: ensureTopicId(row),
+    question: row.question,
+    audioUrl: typeof row.audio_url === "string" && row.audio_url.trim().length > 0 ? row.audio_url.trim() : null,
+  }));
+
+  if (questions.length === 0) {
+    return null;
+  }
+
+  return {
+    group: "part1",
+    topic: topic.topic,
+    topicId: topic.topicId,
+    questions,
+  };
 }
