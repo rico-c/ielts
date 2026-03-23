@@ -211,7 +211,7 @@ function IntensiveListeningContent() {
     const containerBottom = containerTop + container.clientHeight;
     const elementTop = activeElement.offsetTop;
     const elementBottom = elementTop + activeElement.offsetHeight;
-    const padding = 24;
+    const padding = -60;
 
     if (elementTop < containerTop + padding) {
       container.scrollTo({

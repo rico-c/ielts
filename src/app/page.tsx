@@ -430,7 +430,7 @@ export default async function Home() {
 
           <PricingSection
             ctaHref={userId ? "/dashboard" : "/sign-up"}
-            ctaLabel={userId ? "进入免费版控制台" : "免费开始备考"}
+            ctaLabel={userId ? "" : ""}
           />
 
           <section id="questions" className="py-8">

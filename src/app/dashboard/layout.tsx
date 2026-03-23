@@ -110,7 +110,7 @@ export default function DashboardLayout({
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         } ${collapsed ? "md:w-[88px]" : "md:w-72"}`}
       >
-        <div className="flex h-16 items-center justify-between px-4">
+        <div className={`flex h-16 items-center px-4 ${collapsed ? "justify-center" : "justify-between"}`}>
           <Link
             href="/"
             className={`flex items-center transition-all duration-300 ${collapsed ? "w-0 overflow-hidden opacity-0" : "opacity-100"}`}
@@ -129,7 +129,7 @@ export default function DashboardLayout({
             <button
               type="button"
               onClick={() => setCollapsed((value) => !value)}
-              className="hidden items-center gap-2 rounded-lg p-2 text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 md:inline-flex"
+              className="hidden items-center rounded-lg p-2 text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 md:inline-flex"
             >
               <SidebarToggleIcon collapsed={collapsed} />
               <CollapseLabel collapsed={collapsed} />

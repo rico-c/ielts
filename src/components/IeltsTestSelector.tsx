@@ -181,7 +181,7 @@ export default function IeltsTestSelector({
                       onClick={() => onPartChange?.(partNo)}
                       className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                         active
-                          ? "bg-blue-600 text-white"
+                          ? "bg-slate-900 text-white"
                           : "border border-[var(--line)] bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
                       }`}
                     >
