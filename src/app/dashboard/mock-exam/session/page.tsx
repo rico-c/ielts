@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import SpeakingPart1MockSession from "@/components/SpeakingPart1MockSession";
+import SpeakingMockTabs from "@/components/SpeakingMockTabs";
 import { getSpeakingMockTopic, type SpeakingTopicGroup } from "@/lib/speaking-db";
 
 type SearchParams = {
@@ -32,6 +33,8 @@ export default async function SpeakingMockSessionPage({ searchParams }: Props) {
   if (normalizedGroup === "part1") {
     return (
       <div className="flex h-full min-h-0 flex-col gap-4">
+        <SpeakingMockTabs activeTab="random" />
+
         <div>
           <Link
             href="/dashboard/mock-exam"
@@ -56,6 +59,8 @@ export default async function SpeakingMockSessionPage({ searchParams }: Props) {
 
   return (
     <div className="space-y-6">
+      <SpeakingMockTabs activeTab="random" />
+
       <div>
         <Link
           href="/dashboard/mock-exam"

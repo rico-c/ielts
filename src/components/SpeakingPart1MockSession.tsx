@@ -631,7 +631,7 @@ export default function SpeakingPart1MockSession({ topicId }: Props) {
                   type="button"
                   onClick={handleSubmitForAiReview}
                   disabled={isConvertingAudio}
-                  className="inline-flex items-center justify-center rounded-full bg-slate-900 px-8 py-4 text-sm font-semibold text-white shadow-lg shadow-slate-200 transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
+                  className="cursor-pointer inline-flex items-center justify-center rounded-full bg-slate-900 px-8 py-6 text-sm font-semibold text-white shadow-lg shadow-slate-200 transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
                 >
                   提交AI评分
                 </button>

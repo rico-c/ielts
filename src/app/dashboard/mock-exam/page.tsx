@@ -1,4 +1,5 @@
 import SpeakingMockTopicPicker from "@/components/SpeakingMockTopicPicker";
+import SpeakingMockTabs from "@/components/SpeakingMockTabs";
 import { getSpeakingMockCatalog } from "@/lib/speaking-db";
 
 export default async function MockExamPage() {
@@ -6,6 +7,8 @@ export default async function MockExamPage() {
 
   return (
     <div className="space-y-4">
+      <SpeakingMockTabs activeTab="random" />
+
       {/* <div>
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900">口语模考</h1>
         <p className="mt-2 text-sm leading-6 text-slate-600">
