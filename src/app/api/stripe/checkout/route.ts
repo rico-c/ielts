@@ -40,10 +40,15 @@ export async function POST(req: Request) {
       },
       locale: "zh",
       allow_promotion_codes: true,
+      payment_method_options: {
+        wechat_pay: {
+          client: 'web'
+        }
+      }
     };
 
     if (isAlipay) {
-      params["payment_method_types"] = ["alipay"];
+      params["payment_method_types"] = ["alipay", "wechat_pay"];
     } else {
       params["payment_method_types"] = ["card"];
     }

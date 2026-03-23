@@ -1,4 +1,5 @@
 import PricingPlanCard, { type PricingPlan } from "@/components/PricingPlanCard";
+import { PRICE_ID } from "@/constants/priceid";
 
 const freePlanFeatures = [
   "剑雅8-20题目练习",
@@ -56,6 +57,8 @@ export default function PricingSection({
           price: "￥79",
           priceSuffix: "/月",
           priceCaption: "一个月 79 元",
+          checkoutPriceId: PRICE_ID.MONTHLY,
+          isSubscription: false,
         },
         {
           id: "yearly",
@@ -63,12 +66,18 @@ export default function PricingSection({
           price: "￥499",
           priceSuffix: "/年",
           priceCaption: "一年 499 元",
+          checkoutPriceId: PRICE_ID.YEARLY,
+          isSubscription: false,
         },
       ],
       defaultBillingOptionId: "yearly",
       features: proPlanFeatures,
       ctaHref,
       ctaLabel: "升级 PRO",
+      ctaLabelByBillingOptionId: {
+        monthly: "升级月度 PRO",
+        yearly: "升级年度 PRO",
+      },
       note: "",
       variant: "featured",
       className: "xl:-rotate-[0.35deg]",
@@ -96,7 +105,7 @@ export default function PricingSection({
             选择适合你的计划和权益
           </h2>
           <p className={`mt-4 leading-8 text-gray-600 ${isDashboard ? "max-w-3xl text-sm sm:text-base" : "mx-auto max-w-3xl text-lg"}`}>
-            免费版可以直接开始备考；如果需要更完整的训练权益，也可以升级到 PRO 会员。这一块会统一承接不同页面里的价格展示。
+            行业领先的雅思备考平台，AI引擎助力高效提分
           </p>
         </div>
 

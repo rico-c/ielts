@@ -1,6 +1,8 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -16,6 +18,8 @@ export type PricingBillingOption = {
   price: string;
   priceSuffix?: string;
   priceCaption?: string;
+  checkoutPriceId?: string;
+  isSubscription?: boolean;
 };
 
 export type PricingPlan = {
@@ -32,6 +36,7 @@ export type PricingPlan = {
   features?: readonly PricingPlanFeature[];
   ctaHref?: string;
   ctaLabel?: string;
+  ctaLabelByBillingOptionId?: Readonly<Record<string, string>>;
   note?: string;
   variant?: "featured" | "default";
   size?: "default" | "compact";
@@ -48,6 +53,8 @@ function getFeatureLabel(feature: PricingPlanFeature) {
 }
 
 function PlanCard({ plan }: { plan: PricingPlan }) {
+  const router = useRouter();
+  const { user, isLoaded } = useUser();
   const {
     badge,
     title,
@@ -61,6 +68,7 @@ function PlanCard({ plan }: { plan: PricingPlan }) {
     features = [],
     ctaHref,
     ctaLabel,
+    ctaLabelByBillingOptionId,
     note,
     variant = "default",
     size = "default",
@@ -73,6 +81,8 @@ function PlanCard({ plan }: { plan: PricingPlan }) {
   const [selectedBillingId, setSelectedBillingId] = useState(
     defaultBillingOptionId ?? availableBillingOptions[0]?.id ?? "",
   );
+  const [isSubmittingCheckout, setIsSubmittingCheckout] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
 
   const activeBillingOption = useMemo(() => {
     if (availableBillingOptions.length === 0) return null;
@@ -86,6 +96,58 @@ function PlanCard({ plan }: { plan: PricingPlan }) {
   const displayPrice = activeBillingOption?.price ?? price ?? "";
   const displayPriceSuffix = activeBillingOption?.priceSuffix ?? priceSuffix;
   const displayPriceCaption = activeBillingOption?.priceCaption ?? priceCaption;
+  const displayCtaLabel =
+    (activeBillingOption ? ctaLabelByBillingOptionId?.[activeBillingOption.id] : undefined) ??
+    ctaLabel;
+  const displayCheckoutPriceId = activeBillingOption?.checkoutPriceId;
+
+  async function handleCheckout() {
+    if (!displayCheckoutPriceId || isSubmittingCheckout || !isLoaded) {
+      return;
+    }
+
+    if (!user) {
+      router.push("/sign-in");
+      return;
+    }
+
+    const email = user.primaryEmailAddress?.emailAddress;
+
+    if (!email) {
+      setCheckoutError("当前账号缺少邮箱，暂时无法发起支付。");
+      return;
+    }
+
+    setIsSubmittingCheckout(true);
+    setCheckoutError("");
+
+    try {
+      const response = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          priceId: displayCheckoutPriceId,
+          isSubscription: activeBillingOption?.isSubscription ?? false,
+          userId: user.id,
+          email,
+        }),
+      });
+
+      const data = (await response.json()) as { error?: string; url?: string };
+
+      if (!response.ok || !data.url) {
+        throw new Error(data.error || "发起支付失败，请稍后重试。");
+      }
+
+      window.location.href = data.url;
+    } catch (error) {
+      console.error("Failed to create Stripe checkout session:", error);
+      setCheckoutError(error instanceof Error ? error.message : "发起支付失败，请稍后重试。");
+      setIsSubmittingCheckout(false);
+    }
+  }
 
   const cardClassName = [
     "rounded-[2rem] border",
@@ -219,15 +281,28 @@ function PlanCard({ plan }: { plan: PricingPlan }) {
         </div>
       ) : null}
 
-      {(ctaHref && ctaLabel) || note ? (
+      {(ctaHref && displayCtaLabel) || note ? (
         <div className={actionRowClassName}>
-          {ctaHref && ctaLabel ? (
-            <Link
-              href={ctaHref}
-              className="inline-flex items-center justify-center rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold !text-white transition-colors hover:bg-blue-700"
-            >
-              {ctaLabel}
-            </Link>
+          {displayCtaLabel ? (
+            displayCheckoutPriceId ? (
+              <button
+                type="button"
+                onClick={() => {
+                  void handleCheckout();
+                }}
+                disabled={isSubmittingCheckout || !isLoaded}
+                className="inline-flex items-center justify-center rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold !text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSubmittingCheckout ? "正在跳转支付..." : displayCtaLabel}
+              </button>
+            ) : ctaHref ? (
+              <Link
+                href={ctaHref}
+                className="inline-flex items-center justify-center rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold !text-white transition-colors hover:bg-blue-700"
+              >
+                {displayCtaLabel}
+              </Link>
+            ) : null
           ) : null}
           {note ? (
             <span
@@ -238,6 +313,7 @@ function PlanCard({ plan }: { plan: PricingPlan }) {
           ) : null}
         </div>
       ) : null}
+      {checkoutError ? <p className="mt-3 text-sm text-rose-600">{checkoutError}</p> : null}
     </article>
   );
 }
