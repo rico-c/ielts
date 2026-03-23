@@ -178,7 +178,7 @@ export default function DashboardLayout({
         </div>
 
         <nav
-          className={`flex-1 space-y-1 overflow-y-auto transition-all duration-300 ${collapsed ? "px-2 py-3" : "p-4"}`}
+          className={`flex-1 space-y-1 overflow-y-auto transition-all duration-300 p-2`}
         >
           {menuItems.map((item) => {
             const active = pathname === item.href;
@@ -187,8 +187,8 @@ export default function DashboardLayout({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`group flex items-center rounded-xl px-3 py-1 transition-colors ${
-                  collapsed ? "justify-center" : "gap-3"
+                className={`group flex items-center rounded-xl px-3 py-0.5 transition-colors ${
+                  collapsed ? "justify-center" : "gap-1"
                 } ${active ? "bg-transparent text-slate-900" : "text-slate-500 hover:bg-transparent hover:text-slate-700"}`}
                 title={collapsed ? item.label : undefined}
               >
