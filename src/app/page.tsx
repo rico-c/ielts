@@ -14,6 +14,7 @@ import PricingSection from "@/components/PricingSection";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import { getSortedPostsData } from "@/lib/blogs";
+import { DeferredChatwayWidget } from "@/components/HomeDeferred";
 
 const featureCards: Array<{
   title: string;
@@ -109,6 +110,8 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
+      <DeferredChatwayWidget />
+
       <SiteHeader />
 
       <main className="flex-grow pb-16 pt-32">

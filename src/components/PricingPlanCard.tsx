@@ -291,7 +291,7 @@ function PlanCard({ plan }: { plan: PricingPlan }) {
                   void handleCheckout();
                 }}
                 disabled={isSubmittingCheckout || !isLoaded}
-                className="inline-flex items-center justify-center rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold !text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center justify-center rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold !text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
               >
                 {isSubmittingCheckout ? "正在跳转支付..." : displayCtaLabel}
               </button>

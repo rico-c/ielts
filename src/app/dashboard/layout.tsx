@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Mic2,
   NotebookPen,
+  Rocket,
   Settings,
   SquareChartGantt,
   X,
@@ -205,7 +206,7 @@ export default function DashboardLayout({
         </nav>
 
         {!collapsed ? (
-          <div className="px-4 pb-2">
+          <div className="px-4 pb-0">
             <div className="overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4 shadow-sm">
               <h3 className="font-bold text-gray-900">优秀雅思PRO会员</h3>
               <p className="mt-1 text-xs leading-5 text-slate-600">
@@ -214,8 +215,9 @@ export default function DashboardLayout({
               <button
                 type="button"
                 onClick={() => setPricingModalOpen(true)}
-                className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-white bg-white/80 px-4 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-white"
+                className="cursor-pointer mt-4 inline-flex gap-2 w-full items-center justify-center rounded-xl border border-white bg-white/80 px-4 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-white hover:border-blue-200 hover:text-blue-600 "
               >
+                <Rocket className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform duration-300" />
                 查看价格
               </button>
             </div>
@@ -226,7 +228,7 @@ export default function DashboardLayout({
           className={`transition-all duration-300 ${collapsed ? "px-2 py-4" : "p-4"}`}
         >
           <div
-            className={`flex items-center rounded-xl px-3 py-2 hover:bg-slate-50 ${collapsed ? "justify-center" : "gap-3"}`}
+            className={`flex items-center rounded-xl px-3 py-2 ${collapsed ? "justify-center" : "gap-3"}`}
           >
             <UserButton />
           </div>
