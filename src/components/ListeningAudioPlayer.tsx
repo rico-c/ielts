@@ -17,7 +17,7 @@ import {
   useState,
 } from "react";
 
-const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 1.75, 2];
+const PLAYBACK_RATES = [0.5, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
 const SEEK_SECONDS = 5;
 
 function formatTime(seconds: number) {
@@ -28,6 +28,10 @@ function formatTime(seconds: number) {
   const secs = totalSeconds % 60;
 
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+function formatPlaybackRate(rate: number) {
+  return Number.isInteger(rate) ? `${rate}` : `${rate}`.replace(/0+$/, "").replace(/\.$/, "");
 }
 
 export type ListeningAudioPlayerHandle = {
@@ -232,7 +236,7 @@ const ListeningAudioPlayer = forwardRef<
               >
                 {PLAYBACK_RATES.map((rate) => (
                   <option key={rate} value={rate}>
-                    {rate}x
+                    {formatPlaybackRate(rate)}x
                   </option>
                 ))}
               </select>
