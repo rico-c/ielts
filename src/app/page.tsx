@@ -13,6 +13,7 @@ import UniversityTicker from "@/components/UniversityTicker";
 import PricingSection from "@/components/PricingSection";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
+import Testimonials from "@/components/Testimonials";
 import { getSortedPostsData } from "@/lib/blogs";
 import { DeferredChatwayWidget } from "@/components/HomeDeferred";
 
@@ -430,6 +431,10 @@ export default async function Home() {
               </div>
             </div>
           </section>
+
+          <div className="-mx-4 sm:-mx-6 lg:-mx-8">
+            <Testimonials />
+          </div>
 
           <PricingSection
             ctaHref={userId ? "/dashboard" : "/sign-up"}

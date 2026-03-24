@@ -70,7 +70,7 @@ export default function PricingSection({
           isSubscription: false,
         },
       ],
-      defaultBillingOptionId: "yearly",
+      defaultBillingOptionId: "monthly",
       features: proPlanFeatures,
       ctaHref,
       ctaLabel: "升级 PRO",
