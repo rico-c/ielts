@@ -10,12 +10,14 @@ import {
   useMemo,
   useState,
 } from "react";
-import { Check, LoaderCircle, X } from "lucide-react";
+import { Check, Crown, LoaderCircle, X } from "lucide-react";
 import ListeningAudioPlayer from "@/components/ListeningAudioPlayer";
+import PricingSection from "@/components/PricingSection";
 import WritingAiReviewPanel from "@/components/WritingAiReviewPanel";
 import type { ListeningPracticePaper, ListeningQuestion } from "@/lib/ielts-db";
 import { countEssayWords, type WritingAiReview } from "@/lib/ielts-writing-review";
 import { NeedHideHTML } from "@/constants/htmlhide";
+import { useMembership } from "@/hooks/useMembership";
 
 type AnswerValue = string | string[];
 type WritingReviewState = {
@@ -820,11 +822,13 @@ export default function ListeningPracticePanel({
       : paper.module === "writing"
         ? "Writing"
         : "Listening";
+  const { isVip, loading: membershipLoading } = useMembership();
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
   const [activePartId, setActivePartId] = useState(
     () => paper.parts[0]?.id ?? "",
   );
   const [isAnalysisVisible, setIsAnalysisVisible] = useState(false);
+  const [pricingModalOpen, setPricingModalOpen] = useState(false);
   const [submittedParts, setSubmittedParts] = useState<Record<string, boolean>>(
     {},
   );
@@ -978,6 +982,28 @@ export default function ListeningPracticePanel({
     setIsAnalysisVisible(false);
   }, [activePartId, paper.id]);
 
+  useEffect(() => {
+    if (!pricingModalOpen) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setPricingModalOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [pricingModalOpen]);
+
   async function handleSubmitCurrentPart() {
     if (!currentPart) return;
 
@@ -986,6 +1012,15 @@ export default function ListeningPracticePanel({
         ...current,
         [currentPart.id]: true,
       }));
+      return;
+    }
+
+    if (membershipLoading) {
+      return;
+    }
+
+    if (!isVip) {
+      setPricingModalOpen(true);
       return;
     }
 
@@ -1122,22 +1157,33 @@ export default function ListeningPracticePanel({
               type="button"
               onClick={handleSubmitCurrentPart}
               disabled={
-                currentIsWriting && currentWritingReviewState.status === "loading"
+                (currentIsWriting &&
+                  currentWritingReviewState.status === "loading") ||
+                (currentIsWriting && membershipLoading)
               }
               className="rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
             >
               {currentIsWriting ? (
                 <span className="inline-flex items-center gap-2">
-                  {currentWritingReviewState.status === "loading" ? (
+                  {currentWritingReviewState.status === "loading" ||
+                  membershipLoading ? (
                     <LoaderCircle className="h-4 w-4 animate-spin" />
                   ) : null}
                   <span>
-                    {currentWritingReviewState.status === "loading"
+                    {membershipLoading
+                      ? "读取会员状态..."
+                      : currentWritingReviewState.status === "loading"
                       ? "AI评分中..."
                       : currentWritingReviewState.review
                         ? "重新AI评分"
                         : "提交AI评分"}
                   </span>
+                  {!membershipLoading && !isVip ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-[11px] font-bold tracking-[0.08em] text-amber-700">
+                      <Crown className="h-3.5 w-3.5" />
+                      PRO
+                    </span>
+                  ) : null}
                 </span>
               ) : (
                 "提交并查看答案"
@@ -2011,6 +2057,34 @@ export default function ListeningPracticePanel({
             )}
           </div>
         </section>
+      ) : null}
+
+      {pricingModalOpen ? (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center">
+          <button
+            type="button"
+            className="absolute inset-0 bg-slate-950/45 backdrop-blur-sm"
+            onClick={() => setPricingModalOpen(false)}
+            aria-label="关闭价格弹窗"
+          />
+          <div className="relative z-10 flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-white/60 bg-[#f8fbff] shadow-2xl shadow-slate-900/20">
+            <button
+              type="button"
+              onClick={() => setPricingModalOpen(false)}
+              className="absolute right-8 top-8 cursor-pointer"
+              aria-label="关闭价格弹窗"
+            >
+              <X className="h-4 w-4" strokeWidth={2.2} />
+            </button>
+            <div className="overflow-y-auto">
+              <PricingSection
+                mode="dashboard"
+                ctaHref="/dashboard/practice"
+                ctaLabel=""
+              />
+            </div>
+          </div>
+        </div>
       ) : null}
     </div>
   );
