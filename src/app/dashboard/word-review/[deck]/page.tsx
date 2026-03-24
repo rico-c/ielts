@@ -66,13 +66,17 @@ export default function WordReviewDeckPage() {
   const [audioFirstMode, setAudioFirstMode] = useState(false);
   const [isDefinitionRevealed, setIsDefinitionRevealed] = useState(true);
   const [isWordInfoRevealed, setIsWordInfoRevealed] = useState(true);
+  const pronunciationAudioRef = useRef<HTMLAudioElement | null>(null);
+  const audioRequestIdRef = useRef(0);
   const pendingSaveCountRef = useRef(0);
   const saveQueueRef = useRef(Promise.resolve());
 
   useEffect(() => {
     if (!deckCode) return;
 
-    const isKnownDeck = WORD_REVIEW_DECKS.some((deck) => deck.code === deckCode);
+    const isKnownDeck = WORD_REVIEW_DECKS.some(
+      (deck) => deck.code === deckCode,
+    );
     if (!isKnownDeck) {
       router.push("/dashboard/word-review");
       return;
@@ -80,8 +84,14 @@ export default function WordReviewDeckPage() {
 
     const fetchSession = async () => {
       try {
-        const response = await fetch(`/api/word-review/session?deck=${encodeURIComponent(deckCode)}`);
-        const data = (await response.json()) as { success?: boolean; data?: SessionData; error?: string };
+        const response = await fetch(
+          `/api/word-review/session?deck=${encodeURIComponent(deckCode)}`,
+        );
+        const data = (await response.json()) as {
+          success?: boolean;
+          data?: SessionData;
+          error?: string;
+        };
 
         if (data.success && data.data) {
           setSession(data.data);
@@ -102,11 +112,17 @@ export default function WordReviewDeckPage() {
 
   const currentWord = useMemo(() => {
     if (!session || session.words.length === 0) return null;
-    return session.words[Math.max(0, Math.min(index, session.words.length - 1))];
+    return session.words[
+      Math.max(0, Math.min(index, session.words.length - 1))
+    ];
   }, [index, session]);
 
   const enqueueSaveProgress = useCallback(
-    (payload: { wordId?: number; currentPosition: number; result?: ReviewResult }) => {
+    (payload: {
+      wordId?: number;
+      currentPosition: number;
+      result?: ReviewResult;
+    }) => {
       if (!session) return;
 
       pendingSaveCountRef.current += 1;
@@ -127,7 +143,10 @@ export default function WordReviewDeckPage() {
           } catch (error) {
             console.error("Failed to save review progress:", error);
           } finally {
-            pendingSaveCountRef.current = Math.max(0, pendingSaveCountRef.current - 1);
+            pendingSaveCountRef.current = Math.max(
+              0,
+              pendingSaveCountRef.current - 1,
+            );
             if (pendingSaveCountRef.current === 0) {
               setSyncing(false);
             }
@@ -163,26 +182,113 @@ export default function WordReviewDeckPage() {
     setIndex((prev) => Math.max(prev - 1, 0));
   }, [currentWord, enqueueSaveProgress, index, session]);
 
-  const playAudio = useCallback(() => {
-    if (!currentWord?.word || !("speechSynthesis" in window)) return;
+  const stopPronunciationAudio = useCallback(() => {
+    const audio = pronunciationAudioRef.current;
+    if (!audio) return;
+
+    audio.pause();
+    audio.src = "";
+    pronunciationAudioRef.current = null;
+  }, []);
+
+  const playSpeechSynthesis = useCallback((word: string) => {
+    if (!("speechSynthesis" in window)) return;
 
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(currentWord.word);
+    const utterance = new SpeechSynthesisUtterance(word);
     utterance.lang = "en-US";
     utterance.rate = 0.85;
     window.speechSynthesis.speak(utterance);
-  }, [currentWord?.word]);
+  }, []);
+
+  const playAudio = useCallback(async () => {
+    const rawWord = currentWord?.word?.trim();
+    if (!rawWord) return;
+
+    const cleanWord =
+      rawWord.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9'-]+$/g, "").trim() ||
+      rawWord;
+
+    audioRequestIdRef.current += 1;
+    const requestId = audioRequestIdRef.current;
+    const primaryAudioUrl = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(cleanWord)}&type=2`;
+
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    stopPronunciationAudio();
+
+    try {
+      const audio = new Audio(primaryAudioUrl);
+      audio.preload = "auto";
+      pronunciationAudioRef.current = audio;
+
+      await new Promise<void>((resolve, reject) => {
+        const timeoutId = window.setTimeout(() => {
+          cleanup();
+          reject(new Error("Youdao audio request timed out."));
+        }, 3000);
+
+        const cleanup = () => {
+          window.clearTimeout(timeoutId);
+          audio.removeEventListener("error", onError);
+        };
+
+        const onError = () => {
+          cleanup();
+          reject(new Error("Youdao audio playback failed."));
+        };
+
+        audio.addEventListener("error", onError, { once: true });
+        void audio.play().then(
+          () => {
+            cleanup();
+            resolve();
+          },
+          (error) => {
+            cleanup();
+            reject(error);
+          },
+        );
+      });
+    } catch (error) {
+      if (audioRequestIdRef.current !== requestId) return;
+
+      console.warn("Failed to play Youdao pronunciation, falling back:", error);
+      stopPronunciationAudio();
+      playSpeechSynthesis(rawWord);
+    }
+  }, [currentWord?.word, playSpeechSynthesis, stopPronunciationAudio]);
 
   useEffect(() => {
-    if (!currentWord) return;
     setIsDefinitionRevealed(!hideDefinitionFirst);
     setIsWordInfoRevealed(!audioFirstMode);
   }, [audioFirstMode, currentWord, hideDefinitionFirst]);
 
   useEffect(() => {
+    if (!currentWord) return;
+
+    audioRequestIdRef.current += 1;
+    stopPronunciationAudio();
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+  }, [currentWord, stopPronunciationAudio]);
+
+  useEffect(() => {
     if (!currentWord || !autoPlayAudio) return;
     playAudio();
   }, [autoPlayAudio, currentWord, playAudio]);
+
+  useEffect(() => {
+    return () => {
+      audioRequestIdRef.current += 1;
+      stopPronunciationAudio();
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [stopPronunciationAudio]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -191,7 +297,12 @@ export default function WordReviewDeckPage() {
       const target = event.target as HTMLElement | null;
       if (target) {
         const tagName = target.tagName;
-        if (tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT" || target.isContentEditable) {
+        if (
+          tagName === "INPUT" ||
+          tagName === "TEXTAREA" ||
+          tagName === "SELECT" ||
+          target.isContentEditable
+        ) {
           return;
         }
       }
@@ -237,7 +348,15 @@ export default function WordReviewDeckPage() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [hideDefinitionFirst, index, isDefinitionRevealed, nextWord, playAudio, prevWord, session]);
+  }, [
+    hideDefinitionFirst,
+    index,
+    isDefinitionRevealed,
+    nextWord,
+    playAudio,
+    prevWord,
+    session,
+  ]);
 
   if (loading) {
     return (
@@ -253,18 +372,26 @@ export default function WordReviewDeckPage() {
   }
 
   if (!session) {
-    return <div className="mx-auto max-w-5xl px-4 py-12 text-sm text-rose-700">单词复习数据加载失败。</div>;
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-12 text-sm text-rose-700">
+        单词复习数据加载失败。
+      </div>
+    );
   }
 
   if (session.words.length === 0) {
     return (
       <div className="relative mx-auto max-w-5xl space-y-5 overflow-hidden rounded-[2rem] border border-amber-200/60 bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 p-6 sm:p-8">
-        <Link href="/dashboard/word-review" className="inline-flex items-center gap-2 text-sm font-medium text-amber-800 transition hover:text-amber-950">
+        <Link
+          href="/dashboard/word-review"
+          className="inline-flex items-center gap-2 text-sm font-medium text-amber-800 transition hover:text-amber-950"
+        >
           <ArrowLeft className="h-4 w-4" />
           返回单词复习
         </Link>
         <div className="rounded-2xl border border-white/70 bg-white/80 p-6 text-sm leading-7 text-amber-900/80 shadow-[0_20px_60px_-35px_rgba(180,83,9,0.55)] backdrop-blur">
-          当前 deck 还没有可复习单词。你可以先通过 JSON 导入词库，或后续接入单词本入口。
+          当前 deck 还没有可复习单词。你可以先通过 JSON
+          导入词库，或后续接入单词本入口。
         </div>
       </div>
     );
@@ -282,7 +409,10 @@ export default function WordReviewDeckPage() {
 
       <header className="rounded-[1.75rem] border border-amber-200/70 bg-white/65 p-5 shadow-[0_24px_70px_-45px_rgba(161,98,7,0.75)] backdrop-blur sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link href="/dashboard/word-review" className="inline-flex items-center gap-2 text-sm font-semibold text-amber-800 transition hover:text-amber-950">
+          <Link
+            href="/dashboard/word-review"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-amber-800 transition hover:text-amber-950"
+          >
             <ArrowLeft className="h-4 w-4" />
             返回
           </Link>
@@ -293,60 +423,90 @@ export default function WordReviewDeckPage() {
             <span className="rounded-full border border-emerald-200 bg-emerald-100/80 px-3 py-1">
               已掌握 {session.progress.masteredCount}
             </span>
-            {syncing ? <span className="text-xs text-amber-700">正在同步...</span> : null}
+            {syncing ? (
+              <span className="text-xs text-amber-700">正在同步...</span>
+            ) : null}
           </div>
         </div>
+        <div className="flex items-center justify-between mt-4">
+          <div className="">
+            <h1 className="text-2xl font-semibold tracking-tight text-amber-950 sm:text-3xl">
+              {session.deck.nameZh}
+            </h1>
+            <p className="mt-1 text-sm text-amber-900/65">
+              {session.deck.nameEn}
+            </p>
+          </div>
 
-        <div className="mt-4">
-          <h1 className="text-2xl font-semibold tracking-tight text-amber-950 sm:text-3xl">{session.deck.nameZh}</h1>
-          <p className="mt-1 text-sm text-amber-900/65">{session.deck.nameEn}</p>
-        </div>
+          <div className=" flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setAutoPlayAudio((prev) => !prev)}
+              aria-pressed={autoPlayAudio}
+              className={`inline-flex items-center gap-3 rounded-full px-3 py-2 text-xs font-semibold tracking-wide transition sm:text-sm `}
+            >
+              <span>自动播放发音</span>
+              <span
+                className={`relative h-6 w-11 rounded-full transition ${autoPlayAudio ? "bg-sky-400/75" : "bg-amber-200/80"}`}
+                aria-hidden
+              >
+                <span
+                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition ${autoPlayAudio ? "left-[22px]" : "left-0.5"}`}
+                />
+              </span>
+              <span
+                className={`text-[10px] font-bold ${autoPlayAudio ? "text-sky-800" : "text-amber-700/80"}`}
+              >
+                {autoPlayAudio ? "ON" : "OFF"}
+              </span>
+            </button>
 
-        <div className="mt-5 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setAutoPlayAudio((prev) => !prev)}
-            aria-pressed={autoPlayAudio}
-            className={`inline-flex items-center gap-3 rounded-full border px-3 py-2 text-xs font-semibold tracking-wide transition sm:text-sm ${
-              autoPlayAudio ? "border-sky-200 bg-sky-50/70 text-sky-900/85" : "border-amber-200 bg-white/70 text-amber-900/75 hover:bg-amber-50/70"
-            }`}
-          >
-            <span>自动播放发音</span>
-            <span className={`relative h-6 w-11 rounded-full transition ${autoPlayAudio ? "bg-sky-400/75" : "bg-amber-200/80"}`} aria-hidden>
-              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition ${autoPlayAudio ? "left-[22px]" : "left-0.5"}`} />
-            </span>
-            <span className={`text-[10px] font-bold ${autoPlayAudio ? "text-sky-800" : "text-amber-700/80"}`}>{autoPlayAudio ? "ON" : "OFF"}</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setHideDefinitionFirst((prev) => !prev)}
+              aria-pressed={definitionVisibleByDefault}
+              className={`inline-flex items-center gap-3 rounded-full px-3 py-2 text-xs font-semibold tracking-wide transition sm:text-sm`}
+            >
+              <span>
+                {definitionVisibleByDefault ? "默认显示释义" : "先隐藏释义"}
+              </span>
+              <span
+                className={`relative h-6 w-11 rounded-full transition ${definitionVisibleByDefault ? "bg-orange-400/75" : "bg-amber-200/80"}`}
+                aria-hidden
+              >
+                <span
+                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition ${definitionVisibleByDefault ? "left-[22px]" : "left-0.5"}`}
+                />
+              </span>
+              <span
+                className={`text-[10px] font-bold ${definitionVisibleByDefault ? "text-orange-800" : "text-amber-700/80"}`}
+              >
+                {definitionVisibleByDefault ? "ON" : "OFF"}
+              </span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setHideDefinitionFirst((prev) => !prev)}
-            aria-pressed={definitionVisibleByDefault}
-            className={`inline-flex items-center gap-3 rounded-full border px-3 py-2 text-xs font-semibold tracking-wide transition sm:text-sm ${
-              definitionVisibleByDefault ? "border-orange-200 bg-orange-50/75 text-orange-900/85" : "border-amber-200 bg-white/70 text-amber-900/75 hover:bg-amber-50/70"
-            }`}
-          >
-            <span>{definitionVisibleByDefault ? "默认显示释义" : "先隐藏释义"}</span>
-            <span className={`relative h-6 w-11 rounded-full transition ${definitionVisibleByDefault ? "bg-orange-400/75" : "bg-amber-200/80"}`} aria-hidden>
-              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition ${definitionVisibleByDefault ? "left-[22px]" : "left-0.5"}`} />
-            </span>
-            <span className={`text-[10px] font-bold ${definitionVisibleByDefault ? "text-orange-800" : "text-amber-700/80"}`}>{definitionVisibleByDefault ? "ON" : "OFF"}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setAudioFirstMode((prev) => !prev)}
-            aria-pressed={wordVisibleByDefault}
-            className={`inline-flex items-center gap-3 rounded-full border px-3 py-2 text-xs font-semibold tracking-wide transition sm:text-sm ${
-              wordVisibleByDefault ? "border-emerald-200 bg-emerald-50/75 text-emerald-900/85" : "border-amber-200 bg-white/70 text-amber-900/75 hover:bg-amber-50/70"
-            }`}
-          >
-            <span>{wordVisibleByDefault ? "默认显示单词" : "先只听音"}</span>
-            <span className={`relative h-6 w-11 rounded-full transition ${wordVisibleByDefault ? "bg-emerald-400/75" : "bg-amber-200/80"}`} aria-hidden>
-              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition ${wordVisibleByDefault ? "left-[22px]" : "left-0.5"}`} />
-            </span>
-            <span className={`text-[10px] font-bold ${wordVisibleByDefault ? "text-emerald-800" : "text-amber-700/80"}`}>{wordVisibleByDefault ? "ON" : "OFF"}</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setAudioFirstMode((prev) => !prev)}
+              aria-pressed={wordVisibleByDefault}
+              className={`inline-flex items-center gap-3 rounded-full px-3 py-2 text-xs font-semibold tracking-wide transition sm:text-sm `}
+            >
+              <span>{wordVisibleByDefault ? "默认显示单词" : "先只听音"}</span>
+              <span
+                className={`relative h-6 w-11 rounded-full transition ${wordVisibleByDefault ? "bg-emerald-400/75" : "bg-amber-200/80"}`}
+                aria-hidden
+              >
+                <span
+                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition ${wordVisibleByDefault ? "left-[22px]" : "left-0.5"}`}
+                />
+              </span>
+              <span
+                className={`text-[10px] font-bold ${wordVisibleByDefault ? "text-emerald-800" : "text-amber-700/80"}`}
+              >
+                {wordVisibleByDefault ? "ON" : "OFF"}
+              </span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -368,7 +528,9 @@ export default function WordReviewDeckPage() {
                   {SHORTCUT_KEYS.playAudio}
                 </span>
                 {audioFirstMode && !isWordInfoRevealed ? (
-                  <span className="rounded-full bg-amber-100/80 px-3 py-1 text-xs font-medium text-amber-800">当前为先听音模式</span>
+                  <span className="rounded-full bg-amber-100/80 px-3 py-1 text-xs font-medium text-amber-800">
+                    当前为先听音模式
+                  </span>
                 ) : null}
               </div>
 
@@ -384,8 +546,14 @@ export default function WordReviewDeckPage() {
               ) : (
                 <div className="space-y-4">
                   <div className="flex flex-wrap items-end gap-3">
-                    <h2 className="text-4xl font-semibold leading-tight tracking-tight text-amber-950 sm:text-5xl">{currentWord.word}</h2>
-                    {currentWord.phonetic ? <span className="text-base text-amber-900/60">/{currentWord.phonetic}/</span> : null}
+                    <h2 className="text-4xl font-semibold leading-tight tracking-tight text-amber-950 sm:text-5xl">
+                      {currentWord.word}
+                    </h2>
+                    {currentWord.phonetic ? (
+                      <span className="text-base text-amber-900/60">
+                        /{currentWord.phonetic}/
+                      </span>
+                    ) : null}
                   </div>
 
                   {!shouldShowDefinition ? (
@@ -425,7 +593,9 @@ export default function WordReviewDeckPage() {
                   ) : null}
 
                   {currentWord.exampleSentence ? (
-                    <p className="text-sm italic leading-7 text-amber-900/65 sm:text-base">"{currentWord.exampleSentence}"</p>
+                    <p className="text-sm italic leading-7 text-amber-900/65 sm:text-base">
+                      "{currentWord.exampleSentence}"
+                    </p>
                   ) : null}
                 </div>
               )}
@@ -439,7 +609,9 @@ export default function WordReviewDeckPage() {
               >
                 <CheckCircle2 className="h-4 w-4" />
                 认识
-                <span className="rounded-md border border-white/40 bg-white/20 px-1.5 py-0.5 text-[10px] font-bold tracking-wider">{SHORTCUT_KEYS.correct}</span>
+                <span className="rounded-md border border-white/40 bg-white/20 px-1.5 py-0.5 text-[10px] font-bold tracking-wider">
+                  {SHORTCUT_KEYS.correct}
+                </span>
               </button>
               <button
                 onClick={() => nextWord("incorrect")}
@@ -448,7 +620,9 @@ export default function WordReviewDeckPage() {
               >
                 <CircleAlert className="h-4 w-4" />
                 不认识
-                <span className="rounded-md border border-white/40 bg-white/20 px-1.5 py-0.5 text-[10px] font-bold tracking-wider">{SHORTCUT_KEYS.incorrect}</span>
+                <span className="rounded-md border border-white/40 bg-white/20 px-1.5 py-0.5 text-[10px] font-bold tracking-wider">
+                  {SHORTCUT_KEYS.incorrect}
+                </span>
               </button>
               <button
                 onClick={() => nextWord("mastered")}
@@ -457,7 +631,9 @@ export default function WordReviewDeckPage() {
               >
                 <CheckCircle2 className="h-4 w-4" />
                 已掌握
-                <span className="rounded-md border border-white/40 bg-white/20 px-1.5 py-0.5 text-[10px] font-bold tracking-wider">{SHORTCUT_KEYS.mastered}</span>
+                <span className="rounded-md border border-white/40 bg-white/20 px-1.5 py-0.5 text-[10px] font-bold tracking-wider">
+                  {SHORTCUT_KEYS.mastered}
+                </span>
               </button>
             </div>
           </div>
