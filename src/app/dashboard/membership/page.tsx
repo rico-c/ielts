@@ -173,11 +173,12 @@ export default function DashboardMembershipPage() {
               </div>
             </div>
 
-            <div className="mt-6 grid gap-3">
+            <div className="mt-6 grid gap-2">
               {[
-                "查看当前会员套餐与有效期",
-                "跳转 Stripe portal 管理账单和订阅",
-                "继续进入真题、精听、口语模考等训练流程",
+                "剑雅真题写作AI评分",
+                "口语模考AI评分",
+                "优质专项单词本复习",
+                "澳新免服务费留学申请",
               ].map((item) => (
                 <div
                   key={item}

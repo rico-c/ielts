@@ -87,6 +87,14 @@ function CollapseLabel({ collapsed }: { collapsed: boolean }) {
   return <span>{collapsed ? "" : "收起"}</span>;
 }
 
+function ProBadge() {
+  return (
+    <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-[11px] font-bold tracking-[0.12em] text-amber-700 shadow-sm">
+      PRO
+    </span>
+  );
+}
+
 export default function DashboardLayout({
   children,
 }: Readonly<{
@@ -214,7 +222,7 @@ export default function DashboardLayout({
           })}
         </nav>
 
-        {!collapsed ? (
+        {!collapsed && !isVip ? (
           <div className="mt-auto space-y-2 px-4 pb-0">
             <XhsProCampaignCard collapsed={collapsed} isVip={isVip} />
 
@@ -242,6 +250,7 @@ export default function DashboardLayout({
             className={`flex items-center rounded-xl px-3 py-2 ${collapsed ? "justify-center" : "gap-3"}`}
           >
             <UserButton />
+            {!collapsed && isVip ? <ProBadge /> : null}
           </div>
         </div>
       </aside>
