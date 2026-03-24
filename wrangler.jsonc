@@ -8,6 +8,10 @@
 	"main": ".open-next/worker.js",
 	"compatibility_date": "2025-10-08",
 	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+	"ai": {
+		"binding": "AI",
+		"remote": true
+	},
 	"assets": {
 		"binding": "ASSETS",
 		"directory": ".open-next/assets"

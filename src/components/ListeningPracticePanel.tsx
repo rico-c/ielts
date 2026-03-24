@@ -10,12 +10,27 @@ import {
   useMemo,
   useState,
 } from "react";
-import { Check, X } from "lucide-react";
+import { Check, LoaderCircle, X } from "lucide-react";
 import ListeningAudioPlayer from "@/components/ListeningAudioPlayer";
+import WritingAiReviewPanel from "@/components/WritingAiReviewPanel";
 import type { ListeningPracticePaper, ListeningQuestion } from "@/lib/ielts-db";
+import { countEssayWords, type WritingAiReview } from "@/lib/ielts-writing-review";
 import { NeedHideHTML } from "@/constants/htmlhide";
 
 type AnswerValue = string | string[];
+type WritingReviewState = {
+  status: "idle" | "loading" | "success" | "error";
+  review: WritingAiReview | null;
+  error: string | null;
+  essayText: string;
+};
+
+const EMPTY_WRITING_REVIEW_STATE: WritingReviewState = {
+  status: "idle",
+  review: null,
+  error: null,
+  essayText: "",
+};
 
 function normalizeText(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
@@ -367,6 +382,10 @@ function replacePlaceholdersWithInputs(
 
 function arraysEqual(left: string[], right: string[]) {
   return JSON.stringify([...left].sort()) === JSON.stringify([...right].sort());
+}
+
+function getWritingMinimumWords(partNo: number) {
+  return partNo === 1 ? 150 : 250;
 }
 
 function renderHtmlNode(
@@ -809,6 +828,9 @@ export default function ListeningPracticePanel({
   const [submittedParts, setSubmittedParts] = useState<Record<string, boolean>>(
     {},
   );
+  const [writingReviewStates, setWritingReviewStates] = useState<
+    Record<string, WritingReviewState>
+  >({});
   const updateAnswer = (questionId: string, value: string) =>
     setAnswers((current) => ({
       ...current,
@@ -856,6 +878,18 @@ export default function ListeningPracticePanel({
   const currentWritingAnswerKey = currentPart
     ? `writing:${currentPart.id}`
     : "";
+  const currentWritingEssay =
+    typeof answers[currentWritingAnswerKey] === "string"
+      ? answers[currentWritingAnswerKey]
+      : "";
+  const currentWritingWordCount = countEssayWords(currentWritingEssay);
+  const currentWritingReviewState = currentPart
+    ? writingReviewStates[currentPart.id] ?? EMPTY_WRITING_REVIEW_STATE
+    : EMPTY_WRITING_REVIEW_STATE;
+  const isCurrentWritingReviewStale =
+    currentIsWriting &&
+    Boolean(currentWritingReviewState.review) &&
+    currentWritingReviewState.essayText.trim() !== currentWritingEssay.trim();
 
   const currentPartQuestions = useMemo(
     () =>
@@ -944,6 +978,88 @@ export default function ListeningPracticePanel({
     setIsAnalysisVisible(false);
   }, [activePartId, paper.id]);
 
+  async function handleSubmitCurrentPart() {
+    if (!currentPart) return;
+
+    if (!currentIsWriting) {
+      setSubmittedParts((current) => ({
+        ...current,
+        [currentPart.id]: true,
+      }));
+      return;
+    }
+
+    const essay = currentWritingEssay.trim();
+    if (!essay) {
+      setWritingReviewStates((current) => ({
+        ...current,
+        [currentPart.id]: {
+          status: "error",
+          review: current[currentPart.id]?.review ?? null,
+          error: "请先写完作文再提交 AI 评分。",
+          essayText: currentWritingEssay,
+        },
+      }));
+      return;
+    }
+
+    setWritingReviewStates((current) => ({
+      ...current,
+      [currentPart.id]: {
+        status: "loading",
+        review: current[currentPart.id]?.review ?? null,
+        error: null,
+        essayText: currentWritingEssay,
+      },
+    }));
+
+    try {
+      const response = await fetch("/api/ielts/writing/review", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          partId: currentPart.id,
+          essay,
+        }),
+      });
+      const json = (await response.json()) as {
+        review?: WritingAiReview;
+        error?: string;
+      };
+
+      if (!response.ok || !json.review) {
+        throw new Error(json.error || "AI 评分失败，请稍后重试。");
+      }
+
+      setWritingReviewStates((current) => ({
+        ...current,
+        [currentPart.id]: {
+          status: "success",
+          review: json.review ?? null,
+          error: null,
+          essayText: essay,
+        },
+      }));
+      setSubmittedParts((current) => ({
+        ...current,
+        [currentPart.id]: true,
+      }));
+    } catch (error) {
+      setWritingReviewStates((current) => ({
+        ...current,
+        [currentPart.id]: {
+          status: "error",
+          review: current[currentPart.id]?.review ?? null,
+          error:
+            error instanceof Error ? error.message : "AI 评分失败，请稍后重试。",
+          essayText: currentWritingEssay,
+        },
+      }));
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="rounded-[2rem] border border-[var(--line)] bg-white px-6 py-4 shadow-sm ">
@@ -983,6 +1099,11 @@ export default function ListeningPracticePanel({
                 得分 {correctCount} / {totalQuestions}
               </div>
             ) : null}
+            {currentIsWriting && currentWritingReviewState.review ? (
+              <div className="rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">
+                AI 预估 {currentWritingReviewState.review.overallBand.toFixed(1)}
+              </div>
+            ) : null}
             {!hideHeaderSummary ? (
               <h2 className="text-xl font-extrabold tracking-tight text-slate-900">
                 {paper.title} · Test {paper.testNo} · {moduleLabel}
@@ -999,17 +1120,28 @@ export default function ListeningPracticePanel({
             ) : null}
             <button
               type="button"
-              onClick={() => {
-                if (!currentPart) return;
-
-                setSubmittedParts((current) => ({
-                  ...current,
-                  [currentPart.id]: true,
-                }));
-              }}
-              className="rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
+              onClick={handleSubmitCurrentPart}
+              disabled={
+                currentIsWriting && currentWritingReviewState.status === "loading"
+              }
+              className="rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
             >
-              {currentIsWriting ? "保存作文" : "提交并查看答案"}
+              {currentIsWriting ? (
+                <span className="inline-flex items-center gap-2">
+                  {currentWritingReviewState.status === "loading" ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                  ) : null}
+                  <span>
+                    {currentWritingReviewState.status === "loading"
+                      ? "AI评分中..."
+                      : currentWritingReviewState.review
+                        ? "重新AI评分"
+                        : "提交AI评分"}
+                  </span>
+                </span>
+              ) : (
+                "提交并查看答案"
+              )}
             </button>
           </div>
         </div>
@@ -1068,25 +1200,55 @@ export default function ListeningPracticePanel({
 
           </div>
 
-          <div className="space-y-4 px-4 py-5 sm:px-6 sm:py-6">
+          <div className="space-y-4 px-4 py-5 sm:px-6 sm:py-6 pt-0!">
             {currentIsWriting ? (
-              // <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <textarea
-                  value={
-                    typeof answers[currentWritingAnswerKey] === "string"
-                      ? answers[currentWritingAnswerKey]
-                      : ""
-                  }
+                  value={currentWritingEssay}
                   onChange={(event) =>
                     updateAnswer(currentWritingAnswerKey, event.target.value)
                   }
                   placeholder="在这里开始写作..."
                   className="min-h-[420px] w-full rounded-[1.5rem] border border-slate-200 bg-white px-5 py-4 text-sm leading-7 text-slate-700 outline-none transition-colors focus:border-slate-400"
                 />
+                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.5rem] px-4 py-3 ">
+                  <div className="text-sm text-slate-600">
+                    {/* 当前 Part {currentPart.partNo} 建议至少写{" "}
+                    <span className="font-semibold text-slate-900">
+                      {getWritingMinimumWords(currentPart.partNo)}
+                    </span>{" "}
+                    词 */}
+                  </div>
+                  <div className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700">
+                    当前词数 {currentWritingWordCount}
+                  </div>
+                </div>
+
+
+                {currentWritingReviewState.status === "loading" ? (
+                  <div className="rounded-[1.25rem] border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+                    AI 正在按照雅思写作标准评分，请稍候。
+                  </div>
+                ) : null}
+
+                {currentWritingReviewState.error ? (
+                  <div className="rounded-[1.25rem] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                    {currentWritingReviewState.error}
+                  </div>
+                ) : null}
+
+                {isCurrentWritingReviewStale ? (
+                  <div className="rounded-[1.25rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    你已经修改了作文内容，当前显示的是上一次评分结果。请重新提交 AI
+                    评分以获取最新反馈。
+                  </div>
+                ) : null}
+
+                {currentWritingReviewState.review ? (
+                  <WritingAiReviewPanel review={currentWritingReviewState.review} />
+                ) : null}
               </div>
             ) : (
-              // </div>
               currentPart.groups.map((group) => (
                 <article
                   key={group.id}

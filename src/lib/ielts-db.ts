@@ -55,6 +55,17 @@ export type ListeningPracticePaper = {
   parts: ListeningPart[];
 };
 
+export type WritingPartContext = {
+  id: string;
+  paperTitle: string;
+  paperTestNo: number | null;
+  partNo: number;
+  title: string;
+  instructionHtml: string | null;
+  contentHtml: string | null;
+  imageInfo: string | null;
+};
+
 export type ListeningTranscriptSentence = {
   text: string;
   start: number;
@@ -401,4 +412,47 @@ export async function getPracticePaper(bookNo: number, testNo: number, module: "
     module,
     parts,
   } satisfies ListeningPracticePaper;
+}
+
+export async function getWritingPartContext(partId: string) {
+  const db = await getDb();
+
+  const row = await db
+    .prepare(
+      `
+        SELECT pp.id, pp.part_no, pp.title, pp.instruction_html, pp.content_html, pp.image_info,
+               ep.title AS paper_title, ep.test_no AS paper_test_no
+        FROM paper_parts pp
+        JOIN exam_papers ep ON ep.id = pp.paper_id
+        WHERE pp.id = ?1
+          AND pp.module = 'writing'
+        LIMIT 1
+      `,
+    )
+    .bind(partId)
+    .first<{
+      id: string;
+      part_no: number;
+      title: string;
+      instruction_html: string | null;
+      content_html: string | null;
+      image_info: string | null;
+      paper_title: string;
+      paper_test_no: number | null;
+    }>();
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    paperTitle: row.paper_title,
+    paperTestNo: row.paper_test_no,
+    partNo: row.part_no,
+    title: row.title,
+    instructionHtml: row.instruction_html,
+    contentHtml: row.content_html,
+    imageInfo: row.image_info,
+  } satisfies WritingPartContext;
 }
