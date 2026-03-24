@@ -1,8 +1,15 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import SettingsActions from "@/app/dashboard/settings/SettingsActions";
 
 export default async function SettingsPage() {
   const { userId } = await auth();
+  let email = "未登录";
+
+  if (userId) {
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+    email = user.primaryEmailAddress?.emailAddress ?? "暂无邮箱";
+  }
 
   return (
     <div className="space-y-6">
@@ -14,8 +21,14 @@ export default async function SettingsPage() {
         <div className="space-y-2">
           <h2 className="text-sm font-semibold text-slate-900">账户信息</h2>
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-            <span className="font-medium text-slate-500">User ID:</span>{" "}
-            <span className="break-all font-mono text-slate-900">{userId ?? "未登录"}</span>
+            <div>
+              <span className="font-medium text-slate-500">用户ID:</span>{" "}
+              <span className="break-all font-mono text-slate-900">{userId ?? "未登录"}</span>
+            </div>
+            <div className="mt-4">
+              <span className="font-medium text-slate-500">用户邮箱:</span>{" "}
+              <span className="break-all font-mono text-slate-900">{email}</span>
+            </div>
           </div>
         </div>
       </section>

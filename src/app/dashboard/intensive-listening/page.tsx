@@ -397,10 +397,10 @@ function IntensiveListeningContent() {
                       }`}
                     >
                       <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                        <span>Sentence {sentence.displayIndex}</span>
+                        {/* <span>句子 {sentence.displayIndex}</span> */}
                         <span>{formatTime(sentence.start)}</span>
-                        <span>-</span>
-                        <span>{formatTime(sentence.end)}</span>
+                        {/* <span>-</span> */}
+                        {/* <span>{formatTime(sentence.end)}</span> */}
                       </div>
 
                       {showOriginal ? (
