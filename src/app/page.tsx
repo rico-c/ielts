@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import Image from "next/image";
 import Link from "next/link";
 import {
   AudioLines,
@@ -92,13 +93,6 @@ const moduleCards = [
   },
 ];
 
-const statCards = [
-  { label: "Modules", value: "4", description: "听说读写统一训练" },
-  { label: "Voice Lab", value: "AI", description: "行业领先的口语模拟Agent" },
-  { label: "Latest Test", value: "Now", description: "真题内容随时进入练习" },
-  { label: "Data Driven", value: "1", description: "更清晰的数据指引" },
-];
-
 const practiceFlowStats = [
   { label: "Start", value: "Speaking first" },
   { label: "Focus", value: "Test-based drills" },
@@ -169,29 +163,16 @@ export default async function Home() {
             </div>
 
             <div className="relative hidden h-[500px] w-full lg:flex">
-              <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-br from-blue-100 via-indigo-50 to-cyan-100" />
-              <div className="absolute -left-6 top-10 h-32 w-32 rounded-full bg-blue-300/30 blur-3xl" />
-              <div className="absolute bottom-12 right-0 h-40 w-40 rounded-full bg-indigo-300/30 blur-3xl" />
-
-              <div className="relative z-10 grid w-full grid-cols-2 gap-4 p-6">
-                {statCards.map((item, index) => (
-                  <div
-                    key={item.label}
-                    className={`flex flex-col justify-center rounded-[1.75rem] border border-white/60 bg-white/80 p-8 text-center shadow-xl shadow-blue-100/60 backdrop-blur-xl transition-transform hover:scale-[1.02] ${
-                      index % 2 === 1 ? "translate-y-8" : ""
-                    }`}
-                  >
-                    <div className="mb-2 text-4xl font-extrabold text-blue-600">
-                      {item.value}
-                    </div>
-                    <div className="mb-1 font-bold text-gray-900">
-                      {item.label}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {item.description}
-                    </div>
-                  </div>
-                ))}
+              <div className="relative z-10 w-full p-6">
+                <div className="relative h-full overflow-hidden rounded-[2rem]">
+                  <Image
+                    src="/hero.png"
+                    alt="优秀雅思首页功能预览"
+                    fill
+                    className="object-contain object-center"
+                    sizes="(min-width: 1024px) 50vw, 100vw"
+                  />
+                </div>
               </div>
             </div>
           </section>
@@ -236,7 +217,7 @@ export default async function Home() {
             </div>
           </section>
 
-          <section id="practice" className="relative overflow-hidden py-24">
+          {/* <section id="practice" className="relative overflow-hidden py-24">
             <div className="absolute left-0 top-1/2 -z-10 h-[460px] w-[460px] -translate-y-1/2 rounded-full bg-gradient-to-r from-blue-100/65 to-indigo-100/30 blur-[120px]" />
             <div className="absolute right-0 top-0 -z-10 h-[420px] w-[420px] rounded-full bg-gradient-to-l from-cyan-100/60 to-sky-100/25 blur-[120px]" />
 
@@ -430,7 +411,7 @@ export default async function Home() {
                 </section>
               </div>
             </div>
-          </section>
+          </section> */}
 
           <div className="-mx-4 sm:-mx-6 lg:-mx-8">
             <Testimonials />
