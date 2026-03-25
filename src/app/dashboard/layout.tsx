@@ -10,6 +10,7 @@ import {
   FileCheck,
   Headphones,
   LayoutDashboard,
+  MessageSquarePlus,
   NotebookPen,
   Rocket,
   Settings,
@@ -49,6 +50,9 @@ const menuItems: DashboardMenuItem[] = [
   { href: "/dashboard/membership", label: "会员中心", icon: Crown, requiresVip: true },
   { href: "/dashboard/settings", label: "设置", icon: Settings },
 ];
+
+const USER_FEEDBACK_FORM_URL =
+  "https://youshowedu.feishu.cn/share/base/form/shrcnauIHhoq0iDWx7L1zuW6RP0";
 
 function SidebarIcon({
   icon: Icon,
@@ -152,6 +156,10 @@ export default function DashboardLayout({
       );
     };
   }, []);
+
+  function openUserFeedbackForm() {
+    window.open(USER_FEEDBACK_FORM_URL, "_blank", "noopener,noreferrer");
+  }
 
   return (
     <div className="relative flex h-screen overflow-hidden bg-[#f8fafc]">
@@ -266,10 +274,19 @@ export default function DashboardLayout({
           className={`transition-all duration-300 ${collapsed ? "px-2 py-4" : "p-4"}`}
         >
           <div
-            className={`flex items-center rounded-xl px-3 py-2 ${collapsed ? "justify-center" : "gap-3"}`}
+            className={`flex items-center rounded-xl px-3 py-2 ${collapsed ? "justify-between" : "gap-3"}`}
           >
             <UserButton />
             {!collapsed && isVip ? <ProBadge /> : null}
+            <button
+              type="button"
+              onClick={openUserFeedbackForm}
+              className={`${collapsed ? "" : "ml-auto "}inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700`}
+              aria-label="提交反馈"
+              title="提交反馈"
+            >
+              <MessageSquarePlus className="h-4 w-4" strokeWidth={2.1} />
+            </button>
           </div>
         </div>
       </aside>

@@ -9,6 +9,7 @@ import {
   LoaderCircle,
   SkipBack,
   SkipForward,
+  X,
 } from "lucide-react";
 import IeltsTestSelector, {
   BOOK_NUMBERS,
@@ -34,6 +35,8 @@ type IntensiveSentence = ListeningTranscriptSentence & {
 };
 
 const FREE_INTENSIVE_LISTENING_MAX_BOOK_NO = 14;
+const INTENSIVE_LISTENING_PRO_NOTICE_DISMISSED_KEY =
+  "ieltsIntensiveListeningProNoticeDismissed";
 
 function parseBookNo(value: string | null) {
   const parsed = Number(value);
@@ -101,6 +104,22 @@ function IntensiveListeningContent() {
   const [currentTime, setCurrentTime] = useState(0);
   const [showOriginal, setShowOriginal] = useState(true);
   const [showTranslation, setShowTranslation] = useState(true);
+  const [proNoticeReady, setProNoticeReady] = useState(false);
+  const [proNoticeDismissed, setProNoticeDismissed] = useState(false);
+
+  useEffect(() => {
+    try {
+      setProNoticeDismissed(
+        window.localStorage.getItem(
+          INTENSIVE_LISTENING_PRO_NOTICE_DISMISSED_KEY,
+        ) === "true",
+      );
+    } catch {
+      setProNoticeDismissed(false);
+    } finally {
+      setProNoticeReady(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (
@@ -290,6 +309,17 @@ function IntensiveListeningContent() {
     void jumpToSentence(targetIndex);
   }
 
+  function handleDismissProNotice() {
+    setProNoticeDismissed(true);
+
+    try {
+      window.localStorage.setItem(
+        INTENSIVE_LISTENING_PRO_NOTICE_DISMISSED_KEY,
+        "true",
+      );
+    } catch {}
+  }
+
   const summaryLabel = `IELTS${activeBookNo} · Test ${activeTestNo} · Part ${activePartNo}`;
   const hasSentences = sentences.length > 0;
 
@@ -327,10 +357,19 @@ function IntensiveListeningContent() {
         summaryLabel={summaryLabel}
       />
 
-      {!membershipLoading && !isVip ? (
-        <div className="flex items-center gap-2 rounded-[1.4rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+      {proNoticeReady && !membershipLoading && !isVip && !proNoticeDismissed ? (
+        <div className="relative flex items-center gap-2 rounded-[1.4rem] border border-amber-200 bg-amber-50 px-4 py-3 pr-12 text-sm text-amber-900">
           <Crown className="h-4 w-4 shrink-0" />
           免费版可练习剑8-剑14，剑15-剑20需升级 PRO 解锁。
+          <button
+            type="button"
+            onClick={handleDismissProNotice}
+            className="absolute right-3 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-amber-700/70 transition-colors hover:bg-amber-100 hover:text-amber-900"
+            aria-label="关闭提示"
+            title="关闭提示"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
       ) : null}
 
