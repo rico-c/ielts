@@ -3,19 +3,20 @@ import { PRICE_ID } from "@/constants/priceid";
 
 const freePlanFeatures = [
   "剑雅8-20题目练习",
-  "有限的精听练习基础功能",
+  "部分剑雅精听练习",
+  "部分口语模考题",
   "个人单词本复习",
 ];
 
 const proPlanFeatures = [
   "免费版全部权益",
-  "精听练习高级功能",
+  "剑雅题目全解析",
+  "全套剑雅精听练习",
   "写作AI评分&解析",
-  "口语模考AI评分&解析",
+  "全套口语模考AI评分",
   "优质专项单词本复习",
   "澳新免服务费留学申请",
   "优质雅思视频课程",
-  "更多专属资料与进阶内容"
 ];
 
 interface PricingSectionProps {

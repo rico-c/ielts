@@ -1,7 +1,10 @@
 "use client";
 
+import { Crown } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { useMembership } from "@/hooks/useMembership";
+import { openDashboardPricingModal } from "@/lib/pricing-modal";
 import type {
   SpeakingMockCatalog,
   SpeakingMockTopic,
@@ -13,6 +16,11 @@ import type {
 type Props = {
   catalog: SpeakingMockCatalog;
 };
+
+function isFreeMockTopic(index: number, total: number) {
+  const freeTopicCount = Math.max(1, Math.ceil(total / 3));
+  return index < freeTopicCount;
+}
 
 function TopicCountLabel({ topic }: { topic: SpeakingMockTopic }) {
   if (topic.group === "part1") {
@@ -96,10 +104,14 @@ function Part23TopicPreview({ topic }: { topic: SpeakingPart23Topic }) {
 
 function TopicButton({
   expanded,
+  isLocked,
+  membershipLoading,
   topic,
   onPreviewToggle,
 }: {
   expanded: boolean;
+  isLocked: boolean;
+  membershipLoading: boolean;
   topic: SpeakingMockTopic;
   onPreviewToggle: () => void;
 }) {
@@ -127,23 +139,44 @@ function TopicButton({
         </div>
 
         <div className="flex shrink-0 flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={onPreviewToggle}
-            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:border-blue-200 hover:text-blue-700"
-          >
-            {expanded ? "收起题目" : "查看题目"}
-          </button>
-          <Link
-            href={`/dashboard/mock-exam/session?group=${topic.group}&topicId=${encodeURIComponent(topic.topicId)}`}
-            className="inline-flex items-center justify-center rounded-full bg-blue-400 px-4 py-2 text-sm font-semibold text-white! transition-colors hover:bg-blue-700"
-          >
-            开始模考
-          </Link>
+          {!isLocked ? (
+            <button
+              type="button"
+              onClick={onPreviewToggle}
+              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:border-blue-200 hover:text-blue-700"
+            >
+              {expanded ? "收起题目" : "查看题目"}
+            </button>
+          ) : null}
+          {membershipLoading ? (
+            <button
+              type="button"
+              disabled
+              className="inline-flex items-center justify-center rounded-full bg-slate-300 px-4 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-80"
+            >
+              读取会员状态...
+            </button>
+          ) : isLocked ? (
+            <button
+              type="button"
+              onClick={openDashboardPricingModal}
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 transition-colors hover:border-amber-300 hover:bg-amber-100"
+            >
+              <Crown className="h-4 w-4" />
+              升级PRO解锁
+            </button>
+          ) : (
+            <Link
+              href={`/dashboard/mock-exam/session?group=${topic.group}&topicId=${encodeURIComponent(topic.topicId)}`}
+              className="inline-flex items-center justify-center rounded-full bg-blue-400 px-4 py-2 text-sm font-semibold text-white! transition-colors hover:bg-blue-700"
+            >
+              开始模考
+            </Link>
+          )}
         </div>
       </div>
 
-      {expanded ? (
+      {expanded && !isLocked ? (
         <div className="mt-4 border-t border-blue-200/70 pt-4">
           {topic.group === "part1" ? (
             <Part1TopicPreview topic={topic} />
@@ -157,6 +190,7 @@ function TopicButton({
 }
 
 export default function SpeakingMockTopicPicker({ catalog }: Props) {
+  const { isVip, loading: membershipLoading } = useMembership();
   const [expandedPreviewKey, setExpandedPreviewKey] = useState<string | null>(
     null,
   );
@@ -172,28 +206,6 @@ export default function SpeakingMockTopicPicker({ catalog }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* <section className="rounded-[2rem] border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6 shadow-sm sm:p-8">
-        <div className="inline-flex rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-blue-700 shadow-sm">
-          Speaking Mock Selector
-        </div>
-        <h2 className="mt-5 text-3xl font-bold text-slate-900 sm:text-4xl">先选题，再决定查看还是开考</h2>
-        <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600 sm:text-base">
-          当前题库直接读取 `speaking_questions`。题目已拆成 Part 1 与 Part 2 &amp; Part 3 两个板块，先点 Topic，再选择下一步操作。
-        </p>
-
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-[1.5rem] border border-white/80 bg-white/80 p-5 shadow-sm">
-            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Part 1 Topics</div>
-            <div className="mt-2 text-3xl font-extrabold text-slate-900">{catalog.part1Topics.length}</div>
-            <div className="mt-1 text-sm text-slate-500">适合先快速浏览高频短答题。</div>
-          </div>
-          <div className="rounded-[1.5rem] border border-white/80 bg-white/80 p-5 shadow-sm">
-            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Part 2 & Part 3 Topics</div>
-            <div className="mt-2 text-3xl font-extrabold text-slate-900">{catalog.part23Topics.length}</div>
-            <div className="mt-1 text-sm text-slate-500">按同一 `topic_id` 把 Cue Card 和追问绑定在一起。</div>
-          </div>
-        </div>
-      </section> */}
       <section className="grid gap-6 xl:grid-cols-2">
         <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50/70 p-5">
           <div className="flex items-center justify-between gap-3">
@@ -209,12 +221,14 @@ export default function SpeakingMockTopicPicker({ catalog }: Props) {
           </div>
 
           <div className="mt-5 grid gap-3">
-            {catalog.part1Topics.map((topic) => (
+            {catalog.part1Topics.map((topic, index) => (
               <TopicButton
                 key={topic.topicId}
                 expanded={
                   expandedPreviewKey === getPreviewKey("part1", topic.topicId)
                 }
+                isLocked={!isVip && !isFreeMockTopic(index, catalog.part1Topics.length)}
+                membershipLoading={membershipLoading}
                 topic={topic}
                 onPreviewToggle={() =>
                   handlePreviewToggle("part1", topic.topicId)
@@ -240,12 +254,14 @@ export default function SpeakingMockTopicPicker({ catalog }: Props) {
           </div>
 
           <div className="mt-5 grid gap-3">
-            {catalog.part23Topics.map((topic) => (
+            {catalog.part23Topics.map((topic, index) => (
               <TopicButton
                 key={topic.topicId}
                 expanded={
                   expandedPreviewKey === getPreviewKey("part23", topic.topicId)
                 }
+                isLocked={!isVip && !isFreeMockTopic(index, catalog.part23Topics.length)}
+                membershipLoading={membershipLoading}
                 topic={topic}
                 onPreviewToggle={() =>
                   handlePreviewToggle("part23", topic.topicId)

@@ -24,6 +24,7 @@ import type { LucideIcon } from "lucide-react";
 import PricingSection from "@/components/PricingSection";
 import XhsProCampaignCard from "@/components/XhsProCampaignCard";
 import { useMembership } from "@/hooks/useMembership";
+import { OPEN_DASHBOARD_PRICING_MODAL_EVENT } from "@/lib/pricing-modal";
 
 type DashboardMenuItem = {
   href: string;
@@ -133,6 +134,24 @@ export default function DashboardLayout({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [pricingModalOpen]);
+
+  useEffect(() => {
+    function handleOpenPricingModal() {
+      setPricingModalOpen(true);
+    }
+
+    window.addEventListener(
+      OPEN_DASHBOARD_PRICING_MODAL_EVENT,
+      handleOpenPricingModal,
+    );
+
+    return () => {
+      window.removeEventListener(
+        OPEN_DASHBOARD_PRICING_MODAL_EVENT,
+        handleOpenPricingModal,
+      );
+    };
+  }, []);
 
   return (
     <div className="relative flex h-screen overflow-hidden bg-[#f8fafc]">

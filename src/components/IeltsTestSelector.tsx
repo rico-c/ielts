@@ -18,8 +18,18 @@ type IeltsTestSelectorProps = {
   activeTestNo: number;
   activePartNo?: number;
   activeModuleId?: string;
+  bookOptions?: Partial<
+    Record<
+      number,
+      {
+        enabled?: boolean;
+        suffix?: string;
+      }
+    >
+  >;
   modules?: readonly SelectorModuleTab[];
   onBookChange: (bookNo: number) => void;
+  onLockedBookClick?: (bookNo: number) => void;
   onTestChange: (testNo: number) => void;
   onPartChange?: (partNo: number) => void;
   onModuleChange?: (moduleId: string) => void;
@@ -33,8 +43,10 @@ export default function IeltsTestSelector({
   activeTestNo,
   activePartNo,
   activeModuleId,
+  bookOptions,
   modules,
   onBookChange,
+  onLockedBookClick,
   onTestChange,
   onPartChange,
   onModuleChange,
@@ -72,19 +84,32 @@ export default function IeltsTestSelector({
             <div className="flex min-w-0 flex-1 flex-wrap items-center justify-start gap-2">
               {BOOK_NUMBERS.map((bookNo) => {
                 const active = bookNo === activeBookNo;
+                const option = bookOptions?.[bookNo];
+                const enabled = option?.enabled !== false;
 
                 return (
                   <button
                     key={bookNo}
                     type="button"
-                    onClick={() => onBookChange(bookNo)}
+                    onClick={() => {
+                      if (enabled) {
+                        onBookChange(bookNo);
+                        return;
+                      }
+
+                      onLockedBookClick?.(bookNo);
+                    }}
+                    aria-disabled={!enabled}
                     className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
                       active
                         ? "bg-slate-900 text-white shadow-[0_12px_28px_rgba(15,23,42,0.18)]"
-                        : "border border-[var(--line)] bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                        : enabled
+                          ? "border border-[var(--line)] bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                          : "border border-amber-200 bg-amber-50 text-amber-800 hover:border-amber-300 hover:bg-amber-100"
                     }`}
                   >
                     剑{bookNo}
+                    {/* {!enabled && option?.suffix ? ` ${option.suffix}` : ""} */}
                   </button>
                 );
               })}

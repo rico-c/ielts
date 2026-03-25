@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
+  Crown,
   Eye,
   EyeOff,
   LoaderCircle,
@@ -16,10 +17,12 @@ import IeltsTestSelector, {
 import ListeningAudioPlayer, {
   type ListeningAudioPlayerHandle,
 } from "@/components/ListeningAudioPlayer";
+import { useMembership } from "@/hooks/useMembership";
 import type {
   ListeningPracticePaper,
   ListeningTranscriptSentence,
 } from "@/lib/ielts-db";
+import { openDashboardPricingModal } from "@/lib/pricing-modal";
 
 type PracticeState = "idle" | "loading" | "success" | "error";
 
@@ -29,6 +32,8 @@ type IntensiveSentence = ListeningTranscriptSentence & {
   sentenceIndex: number;
   displayIndex: number;
 };
+
+const FREE_INTENSIVE_LISTENING_MAX_BOOK_NO = 14;
 
 function parseBookNo(value: string | null) {
   const parsed = Number(value);
@@ -79,6 +84,7 @@ function IntensiveListeningContent() {
   const audioRef = useRef<ListeningAudioPlayerHandle | null>(null);
   const sentenceListContainerRef = useRef<HTMLDivElement | null>(null);
   const sentenceRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const { isVip, loading: membershipLoading } = useMembership();
 
   const [activeBookNo, setActiveBookNo] = useState(() =>
     parseBookNo(searchParams.get("book")),
@@ -95,6 +101,20 @@ function IntensiveListeningContent() {
   const [currentTime, setCurrentTime] = useState(0);
   const [showOriginal, setShowOriginal] = useState(true);
   const [showTranslation, setShowTranslation] = useState(true);
+
+  useEffect(() => {
+    if (
+      membershipLoading ||
+      isVip ||
+      activeBookNo <= FREE_INTENSIVE_LISTENING_MAX_BOOK_NO
+    ) {
+      return;
+    }
+
+    setActiveBookNo(FREE_INTENSIVE_LISTENING_MAX_BOOK_NO);
+    setActiveTestNo(1);
+    setActivePartNo(1);
+  }, [activeBookNo, isVip, membershipLoading]);
 
   const practiceApiUrl = useMemo(() => {
     const params = new URLSearchParams({
@@ -119,6 +139,16 @@ function IntensiveListeningContent() {
     let cancelled = false;
 
     async function loadPracticePaper() {
+      if (membershipLoading) {
+        return;
+      }
+
+      if (!isVip && activeBookNo > FREE_INTENSIVE_LISTENING_MAX_BOOK_NO) {
+        setPracticePaper(null);
+        setPracticeState("idle");
+        return;
+      }
+
       setPracticeState("loading");
 
       try {
@@ -148,7 +178,7 @@ function IntensiveListeningContent() {
     return () => {
       cancelled = true;
     };
-  }, [practiceApiUrl]);
+  }, [activeBookNo, isVip, membershipLoading, practiceApiUrl]);
 
   useEffect(() => {
     const availablePartNos =
@@ -269,11 +299,25 @@ function IntensiveListeningContent() {
         activeBookNo={activeBookNo}
         activePartNo={activePartNo}
         activeTestNo={activeTestNo}
+        bookOptions={Object.fromEntries(
+          BOOK_NUMBERS.map((bookNo) => [
+            bookNo,
+            {
+              enabled:
+                membershipLoading ||
+                isVip ||
+                bookNo <= FREE_INTENSIVE_LISTENING_MAX_BOOK_NO,
+              suffix:
+                bookNo > FREE_INTENSIVE_LISTENING_MAX_BOOK_NO ? "PRO" : undefined,
+            },
+          ]),
+        )}
         onBookChange={(bookNo) => {
           setActiveBookNo(bookNo);
           setActiveTestNo(1);
           setActivePartNo(1);
         }}
+        onLockedBookClick={openDashboardPricingModal}
         onPartChange={setActivePartNo}
         onTestChange={(testNo) => {
           setActiveTestNo(testNo);
@@ -283,11 +327,20 @@ function IntensiveListeningContent() {
         summaryLabel={summaryLabel}
       />
 
-      {practiceState === "loading" ? (
+      {!membershipLoading && !isVip ? (
+        <div className="flex items-center gap-2 rounded-[1.4rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <Crown className="h-4 w-4 shrink-0" />
+          免费版可练习剑8-剑14，剑15-剑20需升级 PRO 解锁。
+        </div>
+      ) : null}
+
+      {membershipLoading || practiceState === "loading" ? (
         <div className="rounded-[2rem] border border-[var(--line)] bg-white px-6 py-10 text-center text-sm text-slate-500 shadow-sm">
           <div className="flex items-center justify-center gap-2">
             <LoaderCircle className="h-4 w-4 animate-spin" />
-            <span>正在加载精听材料...</span>
+            <span>
+              {membershipLoading ? "正在读取会员状态..." : "正在加载精听材料..."}
+            </span>
           </div>
         </div>
       ) : null}
