@@ -1,8 +1,7 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
+import { SignInButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -53,7 +52,6 @@ function getFeatureLabel(feature: PricingPlanFeature) {
 }
 
 function PlanCard({ plan }: { plan: PricingPlan }) {
-  const router = useRouter();
   const { user, isLoaded } = useUser();
   const {
     badge,
@@ -107,7 +105,6 @@ function PlanCard({ plan }: { plan: PricingPlan }) {
     }
 
     if (!user) {
-      router.push("/sign-in");
       return;
     }
 
@@ -285,16 +282,28 @@ function PlanCard({ plan }: { plan: PricingPlan }) {
         <div className={actionRowClassName}>
           {displayCtaLabel ? (
             displayCheckoutPriceId ? (
-              <button
-                type="button"
-                onClick={() => {
-                  void handleCheckout();
-                }}
-                disabled={isSubmittingCheckout || !isLoaded}
-                className="inline-flex items-center justify-center rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold !text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
-              >
-                {isSubmittingCheckout ? "正在跳转支付..." : displayCtaLabel}
-              </button>
+              user ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleCheckout();
+                  }}
+                  disabled={isSubmittingCheckout || !isLoaded}
+                  className="inline-flex items-center justify-center rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold !text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+                >
+                  {isSubmittingCheckout ? "正在跳转支付..." : displayCtaLabel}
+                </button>
+              ) : (
+                <SignInButton mode="modal" forceRedirectUrl="/dashboard">
+                  <button
+                    type="button"
+                    disabled={!isLoaded}
+                    className="inline-flex items-center justify-center rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold !text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+                  >
+                    {displayCtaLabel}
+                  </button>
+                </SignInButton>
+              )
             ) : ctaHref ? (
               <Link
                 href={ctaHref}
