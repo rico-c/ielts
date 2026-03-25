@@ -132,14 +132,14 @@ export default async function Home() {
                 {userId ? (
                   <Link
                     href="/dashboard"
-                    className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-8 py-4 text-lg font-semibold !text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-blue-500/30"
+                    className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-8 py-4 text-lg font-semibold text-white! shadow-lg transition-all hover:bg-blue-700 hover:shadow-blue-500/30"
                   >
                     进入备考平台
                   </Link>
                 ) : (
                   <Link
                     href="/sign-up"
-                    className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-8 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-blue-500/30"
+                    className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-8 py-4 text-lg font-semibold text-white! shadow-lg transition-all hover:bg-blue-700 hover:shadow-blue-500/30"
                   >
                     免费开始备考
                   </Link>
