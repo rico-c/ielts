@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
-import { getSpeakingPart1MockDetail } from "@/lib/speaking-db";
+import {
+  getSpeakingPart1MockDetail,
+  getSpeakingPart23MockDetail,
+} from "@/lib/speaking-db";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const group = searchParams.get("group");
   const topicId = searchParams.get("topicId")?.trim();
 
-  if (group !== "part1") {
+  if (group !== "part1" && group !== "part23") {
     return NextResponse.json({ error: "Unsupported group." }, { status: 400 });
   }
 
@@ -15,7 +18,10 @@ export async function GET(request: Request) {
   }
 
   try {
-    const detail = await getSpeakingPart1MockDetail(topicId);
+    const detail =
+      group === "part1"
+        ? await getSpeakingPart1MockDetail(topicId)
+        : await getSpeakingPart23MockDetail(topicId);
 
     if (!detail) {
       return NextResponse.json({ error: "Speaking topic not found." }, { status: 404 });

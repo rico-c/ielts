@@ -50,6 +50,30 @@ export type SpeakingPart1MockDetail = {
   questions: SpeakingPart1Question[];
 };
 
+export type SpeakingPart23Prompt = {
+  id: number;
+  topic: string;
+  topicId: string;
+  question: string;
+  requirements: string[];
+};
+
+export type SpeakingPart3Question = {
+  id: number;
+  topic: string;
+  topicId: string;
+  question: string;
+  audioUrl: string | null;
+};
+
+export type SpeakingPart23MockDetail = {
+  group: "part23";
+  topic: string;
+  topicId: string;
+  part2Prompt: SpeakingPart23Prompt;
+  part3Questions: SpeakingPart3Question[];
+};
+
 function compareTopicText(left: string, right: string) {
   return left.localeCompare(right, "zh-CN");
 }
@@ -201,5 +225,65 @@ export async function getSpeakingPart1MockDetail(topicId: string): Promise<Speak
     topic: topic.topic,
     topicId: topic.topicId,
     questions,
+  };
+}
+
+export async function getSpeakingPart23MockDetail(topicId: string): Promise<SpeakingPart23MockDetail | null> {
+  const topic = await getSpeakingMockTopic("part23", topicId);
+
+  if (!topic) {
+    return null;
+  }
+
+  const db = await getDatabase();
+  const { results } = await db
+    .prepare(
+      `
+        SELECT id, part, topic, topic_id, question, requirement, audio_url
+        FROM speaking_questions
+        WHERE part IN (2, 3)
+          AND (
+            topic_id = ?1
+            OR ((topic_id IS NULL OR TRIM(topic_id) = '') AND topic = ?2)
+          )
+        ORDER BY
+          CASE
+            WHEN part = 2 THEN 1
+            ELSE 2
+          END ASC,
+          id ASC
+      `,
+    )
+    .bind(topicId, topic.topic)
+    .all<SpeakingQuestionRow>();
+
+  const part2Row = (results ?? []).find((row) => row.part === 2);
+
+  if (!part2Row) {
+    return null;
+  }
+
+  const part3Questions = (results ?? [])
+    .filter((row) => row.part === 3)
+    .map((row) => ({
+      id: row.id,
+      topic: row.topic,
+      topicId: ensureTopicId(row),
+      question: row.question,
+      audioUrl: typeof row.audio_url === "string" && row.audio_url.trim().length > 0 ? row.audio_url.trim() : null,
+    }));
+
+  return {
+    group: "part23",
+    topic: topic.topic,
+    topicId: topic.topicId,
+    part2Prompt: {
+      id: part2Row.id,
+      topic: part2Row.topic,
+      topicId: ensureTopicId(part2Row),
+      question: part2Row.question,
+      requirements: parseRequirementList(part2Row.requirement),
+    },
+    part3Questions,
   };
 }
