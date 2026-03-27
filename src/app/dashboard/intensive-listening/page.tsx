@@ -18,6 +18,7 @@ import IeltsTestSelector, {
 import ListeningAudioPlayer, {
   type ListeningAudioPlayerHandle,
 } from "@/components/ListeningAudioPlayer";
+import PracticeSessionTracker from "@/components/PracticeSessionTracker";
 import { useMembership } from "@/hooks/useMembership";
 import type {
   ListeningPracticePaper,
@@ -325,6 +326,21 @@ function IntensiveListeningContent() {
 
   return (
     <section className="space-y-4">
+      {practiceState === "success" && practicePaper && activePart ? (
+        <PracticeSessionTracker
+          key={`${activeBookNo}-${activeTestNo}-${activePart.partNo}`}
+          activityType="intensive_listening"
+          sourcePath={`/dashboard/intensive-listening?book=${activeBookNo}&test=${activeTestNo}&part=${activePart.partNo}`}
+          itemTitle={`精听练习 · IELTS${activeBookNo} Test ${activeTestNo} · Part ${activePart.partNo}`}
+          itemSubtitle={activePart.title || practicePaper.title}
+          module="listening"
+          bookNo={activeBookNo}
+          testNo={activeTestNo}
+          partNo={activePart.partNo}
+          questionCount={sentences.length}
+        />
+      ) : null}
+
       <IeltsTestSelector
         activeBookNo={activeBookNo}
         activePartNo={activePartNo}

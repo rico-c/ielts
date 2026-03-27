@@ -1,12 +1,18 @@
+import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import {
   ArrowRight,
   BookOpen,
+  ChartColumnIncreasing,
+  Clock3,
   FileText,
   GraduationCap,
+  Headphones,
   NotebookPen,
   Sparkles,
+  SquareChartGantt,
 } from "lucide-react";
+import { getPracticeActivityOverview } from "@/lib/practice-analytics";
 
 const primaryActions = [
   {
@@ -35,13 +41,6 @@ const primaryActions = [
   },
 ];
 
-const overviewStats = [
-  { label: "当前计划", value: "免费版", description: "无付费门槛，直接开始使用" },
-  { label: "真题范围", value: "剑8-剑20", description: "按册数和 Test 持续进入练习" },
-  { label: "单词词库", value: "2", description: "单词本复习 + 雅思 6 分核心词汇" },
-  { label: "学习入口", value: "3", description: "真题、单词、资料统一收口" },
-];
-
 const workflowSteps = [
   {
     title: "先进入真题训练",
@@ -57,7 +56,87 @@ const workflowSteps = [
   },
 ];
 
-export default function DashboardPage() {
+function formatDuration(seconds: number) {
+  if (seconds <= 0) return "0分钟";
+
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+
+  if (hours > 0 && minutes > 0) {
+    return `${hours}小时${minutes}分钟`;
+  }
+
+  if (hours > 0) {
+    return `${hours}小时`;
+  }
+
+  return `${Math.max(1, minutes)}分钟`;
+}
+
+function formatRecordTime(timestamp: number) {
+  return new Intl.DateTimeFormat("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Shanghai",
+  }).format(new Date(timestamp * 1000));
+}
+
+function getActivityBadge(recordType: string) {
+  if (recordType === "cambridge_practice") {
+    return {
+      label: "剑雅真题",
+      icon: BookOpen,
+      className: "bg-blue-50 text-blue-700",
+    };
+  }
+
+  if (recordType === "intensive_listening") {
+    return {
+      label: "精听练习",
+      icon: Headphones,
+      className: "bg-emerald-50 text-emerald-700",
+    };
+  }
+
+  return {
+    label: "口语模拟",
+    icon: SquareChartGantt,
+    className: "bg-amber-50 text-amber-700",
+  };
+}
+
+export default async function DashboardPage() {
+  const { userId } = await auth();
+  const analytics = userId
+    ? await getPracticeActivityOverview(userId)
+    : {
+        todayDurationSeconds: 0,
+        totalDurationSeconds: 0,
+        recentRecords: [],
+      };
+
+  const overviewStats = [
+    {
+      label: "今日练习时长",
+      value: formatDuration(analytics.todayDurationSeconds),
+      description: "按北京时间统计今天累计投入的练习时间",
+    },
+    {
+      label: "总练习时长",
+      value: formatDuration(analytics.totalDurationSeconds),
+      description: "累计记录剑雅真题、口语模拟和精听练习时长",
+    },
+    { label: "真题范围", value: "剑8-剑20", description: "按册数和 Test 持续进入练习" },
+    {
+      label: "最近记录",
+      value: String(analytics.recentRecords.length),
+      description: "概览页展示最近 8 条记录，可直接返回对应练习页面",
+    },
+  ];
+
   return (
     <div className="space-y-8">
       <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
@@ -71,8 +150,8 @@ export default function DashboardPage() {
             从今天该练什么开始
           </h1>
           <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-            这里不再只是一个占位 dashboard。当前工作台会把剑雅真题、单词复习和独家资料收在同一层，
-            让你每天进入平台后都能直接知道先做什么、接着做什么。
+            这里现在不只是入口页，也会开始沉淀你的训练数据。剑雅真题、口语模拟和精听练习的时长与题目记录，
+            都会回收到当前概览里统一展示。
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
@@ -83,10 +162,16 @@ export default function DashboardPage() {
               继续真题练习
             </Link>
             <Link
-              href="/dashboard/word-review"
+              href="/dashboard/mock-exam"
               className="inline-flex items-center justify-center rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition-colors hover:border-blue-200 hover:text-blue-600"
             >
-              打开单词复习
+              打开口语模考
+            </Link>
+            <Link
+              href="/dashboard/intensive-listening"
+              className="inline-flex items-center justify-center rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition-colors hover:border-blue-200 hover:text-blue-600"
+            >
+              打开精听练习
             </Link>
           </div>
 
@@ -98,8 +183,8 @@ export default function DashboardPage() {
               <div>
                 <h2 className="text-lg font-bold text-slate-900">当前最适合的使用方式</h2>
                 <p className="mt-2 text-sm leading-7 text-slate-600">
-                  如果你今天还没开始练，优先进入剑雅真题；如果已经刷完一轮题，再回到单词复习把高频词滚动一遍，
-                  最后按需要去资料页看模板或备考手册。
+                  如果你今天还没开始练，优先进入剑雅真题；如果想补听力精细度，就切到精听练习；
+                  需要单独做口语节奏时，再进入口语模考。
                 </p>
               </div>
             </div>
@@ -108,7 +193,10 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-2 gap-4">
           {overviewStats.map((card) => (
-            <div key={card.label} className="rounded-[1.5rem] border border-slate-200/80 bg-white p-6 text-center shadow-sm">
+            <div
+              key={card.label}
+              className="rounded-[1.5rem] border border-slate-200/80 bg-white p-6 text-center shadow-sm"
+            >
               <div className="text-3xl font-extrabold text-blue-600">{card.value}</div>
               <div className="mt-2 font-semibold text-slate-900">{card.label}</div>
               <div className="mt-1 text-xs leading-5 text-slate-500">{card.description}</div>
@@ -117,102 +205,122 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-3">
-        {primaryActions.map((item) => {
-          const Icon = item.icon;
-
-          return (
-            <article
-              key={item.title}
-              className="group rounded-[1.75rem] border border-slate-200/80 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-200/40"
-            >
-              <div className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${item.accent} text-white shadow-lg`}>
-                <Icon className="h-5 w-5" />
-              </div>
-              <div className="mt-5 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                {item.badge}
-              </div>
-              <h2 className="mt-4 text-xl font-bold text-slate-900">{item.title}</h2>
-              <p className="mt-3 text-sm leading-7 text-slate-600">{item.description}</p>
-              <Link
-                href={item.href}
-                className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-blue-600 transition-colors hover:text-blue-700"
-              >
-                进入
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </article>
-          );
-        })}
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-        <article className="rounded-[1.75rem] border border-slate-200/80 bg-slate-950 p-6 text-white shadow-[0_28px_60px_rgba(15,23,42,0.2)] sm:p-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/6 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-blue-200/80">
-            Recommended Flow
+      <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <article className="rounded-[1.75rem] border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
+          <div className="flex items-start gap-3">
+            <div className="rounded-2xl bg-blue-50 p-3 text-blue-600">
+              <Clock3 className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                Practice Summary
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-slate-900">练习时长统计</h2>
+            </div>
           </div>
-          <h2 className="mt-5 text-3xl font-bold leading-tight">
-            按这条顺序使用
-            <br />
-            体验会最顺
-          </h2>
 
-          <div className="mt-8 space-y-4">
-            {workflowSteps.map((step, index) => (
-              <div key={step.title} className="rounded-[1.5rem] border border-white/10 bg-white/6 p-5">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-sm font-bold text-blue-100">
-                    0{index + 1}
-                  </div>
-                  <div>
-                    <h3 className="text-base font-semibold text-white">{step.title}</h3>
-                    <p className="mt-2 text-sm leading-7 text-slate-300">{step.description}</p>
-                  </div>
-                </div>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-[1.5rem] border border-blue-100 bg-blue-50/70 p-5">
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">
+                Today
               </div>
-            ))}
+              <div className="mt-3 text-3xl font-extrabold text-slate-900">
+                {formatDuration(analytics.todayDurationSeconds)}
+              </div>
+              <p className="mt-2 text-sm leading-7 text-slate-600">
+                今天已经累计的练习时长，当前覆盖剑雅真题、口语模拟和精听练习。
+              </p>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Total
+              </div>
+              <div className="mt-3 text-3xl font-extrabold text-slate-900">
+                {formatDuration(analytics.totalDurationSeconds)}
+              </div>
+              <p className="mt-2 text-sm leading-7 text-slate-600">
+                历史累计总练习时长，会随着你在各模块停留和训练自动更新。
+              </p>
+            </div>
           </div>
+
+          <Link
+            href="/dashboard/analytics"
+            className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-blue-600 transition-colors hover:text-blue-700"
+          >
+            去学习分析页看扩展视图
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </article>
 
         <article className="rounded-[1.75rem] border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
           <div className="flex items-start gap-3">
             <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600">
-              <GraduationCap className="h-5 w-5" />
+              <ChartColumnIncreasing className="h-5 w-5" />
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                Current Scope
+                Recent Records
               </p>
-              <h2 className="mt-2 text-2xl font-bold text-slate-900">当前 dashboard 里已经接通的能力</h2>
+              <h2 className="mt-2 text-2xl font-bold text-slate-900">练习记录</h2>
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
-              <h3 className="text-base font-semibold text-slate-900">剑雅真题练习</h3>
-              <p className="mt-2 text-sm leading-7 text-slate-600">
-                已支持按册数、Test、模块查看和进入练习，是当前最核心的训练入口。
-              </p>
+          {!userId ? (
+            <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-sm leading-7 text-slate-600">
+              登录后才会开始记录你的个人练习时长和题目记录。
             </div>
-            <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
-              <h3 className="text-base font-semibold text-slate-900">单词复习</h3>
-              <p className="mt-2 text-sm leading-7 text-slate-600">
-                已保留两个最常用词库，适合承接练习后的词汇复盘。
-              </p>
+          ) : analytics.recentRecords.length === 0 ? (
+            <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-sm leading-7 text-slate-600">
+              还没有练习记录。进入剑雅真题、口语模拟或精听练习后，系统会自动记录本次训练时长和题目摘要。
             </div>
-            <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
-              <h3 className="text-base font-semibold text-slate-900">独家资料</h3>
-              <p className="mt-2 text-sm leading-7 text-slate-600">
-                资料页已经作为统一入口接好，后面可以继续补模板、手册和阶段资料。
-              </p>
+          ) : (
+            <div className="mt-6 space-y-3">
+              {analytics.recentRecords.map((record) => {
+                const badge = getActivityBadge(record.activityType);
+                const Icon = badge.icon;
+
+                return (
+                  <Link
+                    key={record.id}
+                    href={record.sourcePath}
+                    className="block rounded-[1.5rem] border border-slate-200 bg-slate-50 px-5 py-4 transition-colors hover:border-blue-200 hover:bg-blue-50/50"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${badge.className}`}
+                          >
+                            <Icon className="h-3.5 w-3.5" />
+                            {badge.label}
+                          </span>
+                          <span className="text-xs text-slate-400">
+                            {formatRecordTime(record.endedAt)}
+                          </span>
+                        </div>
+                        <div className="mt-3 text-base font-semibold text-slate-900">
+                          {record.itemTitle}
+                        </div>
+                        <div className="mt-1 text-sm text-slate-500">
+                          {record.itemSubtitle || "点击可回到对应练习页面"}
+                        </div>
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-3 text-sm text-slate-500">
+                        <span>{formatDuration(record.durationSeconds)}</span>
+                        <span className="inline-flex items-center gap-1 font-semibold text-blue-600">
+                          继续练习
+                          <ArrowRight className="h-4 w-4" />
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
-            <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
-              <h3 className="text-base font-semibold text-slate-900">免费版计划</h3>
-              <p className="mt-2 text-sm leading-7 text-slate-600">
-                当前全部围绕免费版展开，用户不需要先付费就能进入核心训练流程。
-              </p>
-            </div>
-          </div>
+          )}
         </article>
       </section>
     </div>

@@ -26,6 +26,7 @@ import {
   type SpeakingMockSubmissionPayload,
   type SpeakingMockSubmitResponse,
 } from "@/lib/speaking-mock-review";
+import PracticeSessionTracker from "@/components/PracticeSessionTracker";
 
 type Props = {
   topicId: string;
@@ -585,6 +586,20 @@ export default function SpeakingPart23MockSession({ topicId }: Props) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      {loadState === "success" && detail ? (
+        <PracticeSessionTracker
+          key={`part23-${detail.topicId}`}
+          activityType="speaking_mock"
+          sourcePath={`/dashboard/mock-exam/session?group=part23&topicId=${encodeURIComponent(detail.topicId)}`}
+          itemTitle={`口语模拟 · Part 2 & Part 3 · ${detail.topic}`}
+          itemSubtitle="口语模考"
+          module="speaking"
+          topicId={detail.topicId}
+          topicGroup="part23"
+          questionCount={1 + detail.part3Questions.length}
+        />
+      ) : null}
+
       {loadState === "loading" ? (
         <section className="flex flex-1 items-center justify-center rounded-[1.75rem] border border-slate-200 bg-white px-6 py-10 text-center text-sm text-slate-500 shadow-sm">
           <div className="flex items-center justify-center gap-2">

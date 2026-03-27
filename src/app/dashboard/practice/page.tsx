@@ -8,6 +8,7 @@ import IeltsTestSelector, {
   TEST_NUMBERS,
 } from "@/components/IeltsTestSelector";
 import ListeningPracticePanel from "@/components/ListeningPracticePanel";
+import PracticeSessionTracker from "@/components/PracticeSessionTracker";
 import type { ListeningPracticePaper } from "@/lib/ielts-db";
 
 const SERIES = "Cambridge IELTS";
@@ -51,6 +52,12 @@ function getExpectedPartNos(module: ModuleId) {
 
 function formatModuleLabel(module: ModuleId) {
   return module.charAt(0).toUpperCase() + module.slice(1);
+}
+
+function getModuleZhLabel(module: ModuleId) {
+  if (module === "listening") return "听力";
+  if (module === "reading") return "阅读";
+  return "写作";
 }
 
 function DashboardPracticeContent() {
@@ -159,6 +166,28 @@ function DashboardPracticeContent() {
 
   return (
     <section className="space-y-4">
+      {practiceState === "success" &&
+      practicePaper &&
+      typeof activePartNo === "number" ? (
+        <PracticeSessionTracker
+          key={`${activeBookNo}-${activeTestNo}-${activeModule}-${activePartNo}`}
+          activityType="cambridge_practice"
+          sourcePath={`/dashboard/practice?book=${activeBookNo}&module=${activeModule}&test=${activeTestNo}&part=${activePartNo}`}
+          itemTitle={`剑雅真题 · IELTS${activeBookNo} Test ${activeTestNo} · ${getModuleZhLabel(activeModule)} Part ${activePartNo}`}
+          itemSubtitle={`${practicePaper.title} · ${getModuleZhLabel(activeModule)}`}
+          module={activeModule}
+          bookNo={activeBookNo}
+          testNo={activeTestNo}
+          partNo={activePartNo}
+          questionCount={
+            practicePaper.parts
+              .find((part) => part.partNo === activePartNo)
+              ?.groups.reduce((sum, group) => sum + group.questions.length, 0) ??
+            0
+          }
+        />
+      ) : null}
+
       <IeltsTestSelector
         activeBookNo={activeBookNo}
         activeModuleId={activeModule}
