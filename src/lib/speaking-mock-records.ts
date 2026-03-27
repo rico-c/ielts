@@ -6,6 +6,7 @@ import {
   type SpeakingMockRecordDetail,
   type SpeakingMockRecordSummary,
   type SpeakingMockRecordStatus,
+  type SpeakingMockTranscriptWord,
   type SpeakingMockRecordTurn,
 } from "@/lib/speaking-mock-review";
 
@@ -39,6 +40,7 @@ type SpeakingMockRecordTurnRow = {
   user_audio_url: string | null;
   user_audio_r2_key: string;
   transcript_text: string | null;
+  pronunciation_result_json: string | null;
   pronunciation_overall_score: number | null;
   created_at: number;
   updated_at: number;
@@ -54,6 +56,76 @@ function parseJsonField(value: string | null) {
   } catch {
     return null;
   }
+}
+
+function parseTranscriptWords(
+  pronunciationResultJson: string | null,
+): SpeakingMockTranscriptWord[] {
+  const parsed = parseJsonField(pronunciationResultJson);
+  if (!parsed || typeof parsed !== "object") {
+    return [];
+  }
+
+  const segments = Array.isArray((parsed as { segments?: unknown[] }).segments)
+    ? (parsed as { segments: unknown[] }).segments
+    : [];
+
+  const words: SpeakingMockTranscriptWord[] = [];
+
+  for (const segment of segments) {
+    if (!segment || typeof segment !== "object") {
+      continue;
+    }
+
+    const rawJson =
+      (segment as { rawJson?: unknown }).rawJson &&
+      typeof (segment as { rawJson?: unknown }).rawJson === "object"
+        ? ((segment as { rawJson: Record<string, unknown> }).rawJson as Record<
+            string,
+            unknown
+          >)
+        : null;
+
+    const topCandidate =
+      rawJson && Array.isArray(rawJson.NBest) && rawJson.NBest[0] && typeof rawJson.NBest[0] === "object"
+        ? (rawJson.NBest[0] as Record<string, unknown>)
+        : null;
+
+    const candidateWords = Array.isArray(topCandidate?.Words)
+      ? (topCandidate?.Words as unknown[])
+      : [];
+
+    for (const word of candidateWords) {
+      if (!word || typeof word !== "object") {
+        continue;
+      }
+
+      const wordRecord = word as Record<string, unknown>;
+      const assessment =
+        wordRecord.PronunciationAssessment &&
+        typeof wordRecord.PronunciationAssessment === "object"
+          ? (wordRecord.PronunciationAssessment as Record<string, unknown>)
+          : null;
+      const text =
+        typeof wordRecord.Word === "string" ? wordRecord.Word.trim() : "";
+
+      if (!text) {
+        continue;
+      }
+
+      words.push({
+        text,
+        accuracyScore:
+          typeof assessment?.AccuracyScore === "number"
+            ? assessment.AccuracyScore
+            : null,
+        errorType:
+          typeof assessment?.ErrorType === "string" ? assessment.ErrorType : null,
+      });
+    }
+  }
+
+  return words;
 }
 
 export async function getSpeakingMockSessionSummaries(
@@ -158,6 +230,7 @@ async function getSpeakingMockTurnsByUserId(userId: string) {
           t.user_audio_url,
           t.user_audio_r2_key,
           t.transcript_text,
+          t.pronunciation_result_json,
           t.pronunciation_overall_score,
           t.created_at,
           t.updated_at
@@ -181,6 +254,7 @@ async function getSpeakingMockTurnsByUserId(userId: string) {
       userAudioUrl: row.user_audio_url,
       isHistoryAudio: row.user_audio_r2_key.startsWith("speaking-mock-history/"),
       transcriptText: row.transcript_text,
+      transcriptWords: parseTranscriptWords(row.pronunciation_result_json),
       pronunciationScore: row.pronunciation_overall_score,
       createdAt: row.created_at,
       updatedAt: row.updated_at,

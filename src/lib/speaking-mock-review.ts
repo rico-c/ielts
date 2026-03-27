@@ -99,9 +99,16 @@ export type SpeakingMockRecordTurn = {
   userAudioUrl: string | null;
   isHistoryAudio: boolean;
   transcriptText: string | null;
+  transcriptWords: SpeakingMockTranscriptWord[];
   pronunciationScore: number | null;
   createdAt: number;
   updatedAt: number;
+};
+
+export type SpeakingMockTranscriptWord = {
+  text: string;
+  accuracyScore: number | null;
+  errorType: string | null;
 };
 
 export type SpeakingMockRecordDetail = SpeakingMockRecordSummary & {

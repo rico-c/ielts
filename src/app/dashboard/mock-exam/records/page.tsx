@@ -61,6 +61,97 @@ function getCriterionLabel(key: string) {
   return "Grammar Range & Accuracy";
 }
 
+function getWordChipClassName(
+  accuracyScore: number | null,
+  errorType: string | null,
+) {
+  if (errorType === "Omission" || errorType === "Insertion") {
+    return "bg-rose-100 text-rose-700 ring-1 ring-inset ring-rose-200";
+  }
+
+  if (accuracyScore === null) {
+    return "bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-200";
+  }
+
+  if (accuracyScore >= 85) {
+    return "bg-emerald-100 text-emerald-700 ring-1 ring-inset ring-emerald-200";
+  }
+
+  if (accuracyScore >= 70) {
+    return "bg-amber-100 text-amber-700 ring-1 ring-inset ring-amber-200";
+  }
+
+  return "bg-rose-100 text-rose-700 ring-1 ring-inset ring-rose-200";
+}
+
+function getWordTooltip(accuracyScore: number | null, errorType: string | null) {
+  const parts = [];
+
+  if (accuracyScore !== null) {
+    parts.push(`Accuracy ${accuracyScore.toFixed(0)}`);
+  }
+
+  if (errorType && errorType !== "None") {
+    parts.push(errorType);
+  }
+
+  return parts.join(" · ");
+}
+
+function getWordIssueSummary(
+  accuracyScore: number | null,
+  errorType: string | null,
+) {
+  if (errorType === "Omission") {
+    return "这个单词有漏读";
+  }
+
+  if (errorType === "Insertion") {
+    return "这个单词有插入音或多读现象";
+  }
+
+  if (accuracyScore === null) {
+    return "这个单词暂时没有拿到可用的发音评分";
+  }
+
+  if (accuracyScore >= 85) {
+    return "这个单词发音基本准确";
+  }
+
+  if (accuracyScore >= 70) {
+    return "这个单词发音一般，清晰度还可以再提高";
+  }
+
+  return "这个单词发音问题比较明显，建议重点跟读修正";
+}
+
+function getWordIssueDetail(
+  accuracyScore: number | null,
+  errorType: string | null,
+) {
+  if (errorType === "Omission") {
+    return "Azure 判断这一处存在漏读，建议放慢语速，把这个词完整读出来。";
+  }
+
+  if (errorType === "Insertion") {
+    return "Azure 判断这里出现了多余发音，建议减少拖音或多加出来的音节。";
+  }
+
+  if (accuracyScore === null) {
+    return "这次没有返回足够的逐词细节，可以结合整句录音再判断。";
+  }
+
+  if (accuracyScore >= 85) {
+    return "这次发音表现稳定，可以继续保持当前口型和重音处理。";
+  }
+
+  if (accuracyScore >= 70) {
+    return "发音大体能听懂，但元音、辅音清晰度或重音可能还不够稳定。";
+  }
+
+  return "这个词的音素或重音偏差较大，建议单独跟读几遍再回到整句练习。";
+}
+
 export default async function SpeakingMockRecordsPage({ searchParams }: Props) {
   const { userId } = await auth();
   const { session } = await searchParams;
@@ -276,7 +367,56 @@ export default async function SpeakingMockRecordsPage({ searchParams }: Props) {
                             <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
                               Transcript
                             </div>
-                            <div className="mt-2">{turn.transcriptText}</div>
+                            {turn.transcriptWords.length > 0 ? (
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {turn.transcriptWords.map((word, wordIndex) => {
+                                  const tooltip = getWordTooltip(
+                                    word.accuracyScore,
+                                    word.errorType,
+                                  );
+                                  const issueSummary = getWordIssueSummary(
+                                    word.accuracyScore,
+                                    word.errorType,
+                                  );
+                                  const issueDetail = getWordIssueDetail(
+                                    word.accuracyScore,
+                                    word.errorType,
+                                  );
+
+                                  return (
+                                    <span
+                                      key={`${turn.id}-word-${wordIndex}`}
+                                      title={tooltip || undefined}
+                                      className="group relative inline-flex"
+                                    >
+                                      <span
+                                        className={`inline-flex rounded-full px-2.5 py-1 text-sm font-medium ${getWordChipClassName(
+                                          word.accuracyScore,
+                                          word.errorType,
+                                        )}`}
+                                      >
+                                        {word.text}
+                                      </span>
+                                      <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden w-56 -translate-x-1/2 rounded-2xl bg-slate-950 px-3 py-2 text-left text-xs leading-5 text-white shadow-xl group-hover:block">
+                                        <span className="block font-semibold">
+                                          {issueSummary}
+                                        </span>
+                                        <span className="mt-1 block text-slate-200">
+                                          {issueDetail}
+                                        </span>
+                                        {tooltip ? (
+                                          <span className="mt-1 block text-slate-400">
+                                            {tooltip}
+                                          </span>
+                                        ) : null}
+                                      </span>
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <div className="mt-2">{turn.transcriptText}</div>
+                            )}
                           </div>
                         ) : null}
 
