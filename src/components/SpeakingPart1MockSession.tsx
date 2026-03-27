@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Crown,
   LoaderCircle,
   Mic,
   Pause,
@@ -9,6 +10,7 @@ import {
   Volume2,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type {
   SpeakingPart1MockDetail,
   SpeakingPart1Question,
@@ -17,6 +19,13 @@ import {
   convertBlobToWav,
   getSupportedMimeType,
 } from "@/lib/speaking-mock-audio";
+import { useMembership } from "@/hooks/useMembership";
+import { openDashboardPricingModal } from "@/lib/pricing-modal";
+import {
+  createSpeakingMockSubmitFormData,
+  type SpeakingMockSubmissionPayload,
+  type SpeakingMockSubmitResponse,
+} from "@/lib/speaking-mock-review";
 
 type Props = {
   topicId: string;
@@ -116,6 +125,8 @@ function UserBubble({ answer }: { answer: AnswerRecord }) {
 }
 
 export default function SpeakingPart1MockSession({ topicId }: Props) {
+  const router = useRouter();
+  const { isVip, loading: membershipLoading } = useMembership();
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [detail, setDetail] = useState<SpeakingPart1MockDetail | null>(null);
   const [error, setError] = useState("");
@@ -126,6 +137,7 @@ export default function SpeakingPart1MockSession({ topicId }: Props) {
   );
   const [recordingElapsedSeconds, setRecordingElapsedSeconds] = useState(0);
   const [isConvertingAudio, setIsConvertingAudio] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [playingQuestionId, setPlayingQuestionId] = useState<number | null>(
     null,
   );
@@ -413,24 +425,68 @@ export default function SpeakingPart1MockSession({ topicId }: Props) {
     recorder.stop();
   }
 
-  function handleSubmitForAiReview() {
+  async function handleSubmitForAiReview() {
+    if (!isVip) {
+      openDashboardPricingModal();
+      return;
+    }
+
+    if (!submissionDraft) {
+      setError("当前没有可提交的模考数据。");
+      return;
+    }
+
     setError("");
-    console.log("Speaking mock submission draft", submissionDraft);
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/speaking/mock-session", {
+        method: "POST",
+        body: createSpeakingMockSubmitFormData(submissionDraft),
+      });
+
+      const json = (await response.json()) as
+        | SpeakingMockSubmitResponse
+        | { error?: string };
+
+      if (!response.ok || !("sessionUuid" in json)) {
+        throw new Error(
+          "error" in json && typeof json.error === "string"
+            ? json.error
+            : "提交 AI 评分失败。",
+        );
+      }
+
+      router.push(
+        `/dashboard/mock-exam/records?session=${encodeURIComponent(json.sessionUuid)}`,
+      );
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error ? submitError.message : "提交 AI 评分失败。",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
-  const submissionDraft = useMemo(() => {
+  const submissionDraft = useMemo<SpeakingMockSubmissionPayload | null>(() => {
     if (!detail) return null;
 
     return {
-      group: "part1" as const,
+      group: "part1",
       topicId: detail.topicId,
       topic: detail.topic,
-      turns: detail.questions.map((question, index) => ({
-        questionId: question.id,
-        question: question.question,
-        examinerAudioUrl: question.audioUrl,
-        userAudioFile: answers[index]?.audioFile ?? null,
-      })),
+      turns: detail.questions.map((question, index) => {
+        const answer = answers[index];
+        return {
+          phase: "part1",
+          questionId: question.id,
+          question: question.question,
+          requirements: [],
+          examinerAudioUrl: question.audioUrl,
+          userAudioFile: answer?.audioFile ?? null,
+        };
+      }),
     };
   }, [answers, detail]);
 
@@ -516,7 +572,7 @@ export default function SpeakingPart1MockSession({ topicId }: Props) {
                     type="button"
                     onClick={handleStopRecording}
                     aria-label="结束录音"
-                    disabled={isConvertingAudio}
+                    disabled={isConvertingAudio || isSubmitting}
                     className="inline-flex h-24 w-24 items-center justify-center rounded-full bg-rose-600 text-white shadow-lg shadow-rose-200 transition-colors hover:bg-rose-700"
                   >
                     <Square className="h-8 w-8" />
@@ -526,21 +582,37 @@ export default function SpeakingPart1MockSession({ topicId }: Props) {
                     type="button"
                     onClick={handleStartRecording}
                     aria-label="开始录音"
-                    disabled={isConvertingAudio}
+                    disabled={isConvertingAudio || isSubmitting}
                     className="inline-flex h-24 w-24 cursor-pointer items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-200 transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
                   >
                     <Mic className="h-8 w-8" />
                   </button>
                 )
               ) : (
-                <button
-                  type="button"
-                  onClick={handleSubmitForAiReview}
-                  disabled={isConvertingAudio}
-                  className="cursor-pointer inline-flex items-center justify-center rounded-full bg-slate-900 px-8 py-6 text-sm font-semibold text-white shadow-lg shadow-slate-200 transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
-                >
-                  提交AI评分
-                </button>
+                isVip ? (
+                  <button
+                    type="button"
+                    onClick={handleSubmitForAiReview}
+                    disabled={isConvertingAudio || isSubmitting || membershipLoading}
+                    className="cursor-pointer inline-flex items-center justify-center rounded-full bg-slate-900 px-8 py-6 text-sm font-semibold text-white shadow-lg shadow-slate-200 transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
+                  >
+                    {membershipLoading
+                      ? "读取会员状态..."
+                      : isSubmitting
+                        ? "正在评分中"
+                        : "提交AI评分"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSubmitForAiReview}
+                    disabled={membershipLoading}
+                    className="cursor-pointer inline-flex items-center justify-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-8 py-6 text-sm font-semibold text-amber-800 shadow-lg shadow-amber-100 transition-colors hover:border-amber-300 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    <Crown className="h-4 w-4" />
+                    {membershipLoading ? "读取会员状态..." : "PRO专属AI评分"}
+                  </button>
+                )
               )}
             </div>
           </div>

@@ -14,23 +14,26 @@ export function getSupportedMimeType(): string {
   return "";
 }
 
-function interleaveChannels(buffer: AudioBuffer) {
+const TARGET_SAMPLE_RATE = 16000;
+
+function mixToMono(buffer: AudioBuffer) {
   if (buffer.numberOfChannels === 1) {
     return buffer.getChannelData(0);
   }
 
-  const length = buffer.length * buffer.numberOfChannels;
-  const result = new Float32Array(length);
-  let writeIndex = 0;
+  const mono = new Float32Array(buffer.length);
 
   for (let sampleIndex = 0; sampleIndex < buffer.length; sampleIndex += 1) {
+    let total = 0;
+
     for (let channelIndex = 0; channelIndex < buffer.numberOfChannels; channelIndex += 1) {
-      result[writeIndex] = buffer.getChannelData(channelIndex)[sampleIndex];
-      writeIndex += 1;
+      total += buffer.getChannelData(channelIndex)[sampleIndex];
     }
+
+    mono[sampleIndex] = total / buffer.numberOfChannels;
   }
 
-  return result;
+  return mono;
 }
 
 function writeAscii(view: DataView, offset: number, value: string) {
@@ -40,9 +43,10 @@ function writeAscii(view: DataView, offset: number, value: string) {
 }
 
 function audioBufferToWavBlob(buffer: AudioBuffer) {
-  const channelData = interleaveChannels(buffer);
+  const channelData = mixToMono(buffer);
   const bytesPerSample = 2;
-  const blockAlign = buffer.numberOfChannels * bytesPerSample;
+  const channelCount = 1;
+  const blockAlign = channelCount * bytesPerSample;
   const byteRate = buffer.sampleRate * blockAlign;
   const dataSize = channelData.length * bytesPerSample;
   const arrayBuffer = new ArrayBuffer(44 + dataSize);
@@ -54,7 +58,7 @@ function audioBufferToWavBlob(buffer: AudioBuffer) {
   writeAscii(view, 12, "fmt ");
   view.setUint32(16, 16, true);
   view.setUint16(20, 1, true);
-  view.setUint16(22, buffer.numberOfChannels, true);
+  view.setUint16(22, channelCount, true);
   view.setUint32(24, buffer.sampleRate, true);
   view.setUint32(28, byteRate, true);
   view.setUint16(32, blockAlign, true);
@@ -72,6 +76,38 @@ function audioBufferToWavBlob(buffer: AudioBuffer) {
   return new Blob([arrayBuffer], { type: "audio/wav" });
 }
 
+async function resampleAudioBuffer(
+  sourceBuffer: AudioBuffer,
+  targetSampleRate: number,
+) {
+  if (
+    sourceBuffer.sampleRate === targetSampleRate &&
+    sourceBuffer.numberOfChannels === 1
+  ) {
+    return sourceBuffer;
+  }
+
+  const frameCount = Math.max(
+    1,
+    Math.round((sourceBuffer.duration || 0) * targetSampleRate),
+  );
+  const offlineContext = new OfflineAudioContext(1, frameCount, targetSampleRate);
+  const monoBuffer = offlineContext.createBuffer(
+    1,
+    sourceBuffer.length,
+    sourceBuffer.sampleRate,
+  );
+
+  monoBuffer.copyToChannel(mixToMono(sourceBuffer), 0);
+
+  const source = offlineContext.createBufferSource();
+  source.buffer = monoBuffer;
+  source.connect(offlineContext.destination);
+  source.start(0);
+
+  return offlineContext.startRendering();
+}
+
 export async function convertBlobToWav(sourceBlob: Blob) {
   const AudioContextConstructor =
     window.AudioContext ||
@@ -86,7 +122,11 @@ export async function convertBlobToWav(sourceBlob: Blob) {
   try {
     const arrayBuffer = await sourceBlob.arrayBuffer();
     const decodedBuffer = await audioContext.decodeAudioData(arrayBuffer);
-    return audioBufferToWavBlob(decodedBuffer);
+    const normalizedBuffer = await resampleAudioBuffer(
+      decodedBuffer,
+      TARGET_SAMPLE_RATE,
+    );
+    return audioBufferToWavBlob(normalizedBuffer);
   } finally {
     await audioContext.close();
   }

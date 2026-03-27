@@ -32,7 +32,8 @@
 	"r2_buckets": [
 		{
 			"binding": "STORAGE",
-			"bucket_name": "ielts"
+			"bucket_name": "ielts",
+			"remote": true
 		}
 	]
 }
