@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { SignInButton } from "@clerk/nextjs";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -137,12 +138,11 @@ export default async function Home() {
                     进入备考平台
                   </Link>
                 ) : (
-                  <Link
-                    href="/sign-up"
-                    className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-8 py-4 text-lg font-semibold text-white! shadow-lg transition-all hover:bg-blue-700 hover:shadow-blue-500/30"
-                  >
-                    免费开始备考
-                  </Link>
+                  <SignInButton mode="modal" forceRedirectUrl="/dashboard">
+                    <button className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-8 py-4 text-lg font-semibold text-white! shadow-lg transition-all hover:bg-blue-700 hover:shadow-blue-500/30">
+                      免费开始备考
+                    </button>
+                  </SignInButton>
                 )}
               </div>
 
