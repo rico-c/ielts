@@ -2,7 +2,7 @@
 title: 英国留学签证申请人数降至四年最低，2026年申请英国留学的人现在最该准备什么
 date: 2026-03-25
 description: 围绕“英国留学签证申请人数降至四年最低”“英国留学签证申请减少”“2026年英国留学还值得吗”等搜索问题，梳理最新数据、政策背景与申请人当下最该提前准备的事项。
-author: 优秀IELTS 教研组
+author: 优秀雅思 教研组
 banner: https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1400&q=80
 ---
 

@@ -2,7 +2,7 @@
 title: 雅思将全面取消纸笔考试？官方更新释放了什么信号，机考时代该怎么准备
 date: 2026-03-24
 description: 围绕“雅思取消纸笔考试”“雅思全面机考”“雅思纸笔考试还会不会保留”等高频搜索问题，梳理官方更新中的关键信息，并给出更适合机考时代的备考建议。
-author: 优秀IELTS 教研组
+author: 优秀雅思 教研组
 banner: https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1400&q=80
 ---
 

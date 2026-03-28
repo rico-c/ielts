@@ -2,7 +2,7 @@
 title: IELTS Writing Task 2 想上 7 分，先把这 5 个失分点修掉
 date: 2026-03-14
 description: 针对 IELTS Writing Task 2 冲 7 分最常见的五类问题，拆解论证、结构、语法和时间分配该怎么修正。
-author: 优秀IELTS 教研组
+author: 优秀雅思 教研组
 banner: https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1400&q=80
 ---
 

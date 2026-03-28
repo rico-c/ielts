@@ -6,7 +6,7 @@ import SiteHeader from "@/components/SiteHeader";
 
 export const metadata: Metadata = {
   title: "IELTS 博客",
-  description: "优秀IELTS 博客，整理口语、写作、阅读与听力的高频备考问题和训练方法。",
+  description: "优秀雅思 博客，整理口语、写作、阅读与听力的高频备考问题和训练方法。",
 };
 
 export default function BlogsPage() {

@@ -67,7 +67,7 @@ function generateBlogData() {
       title: data.title || slug,
       date: data.date || new Date().toISOString().slice(0, 10),
       description: data.description || "",
-      author: data.author || "优秀IELTS 教研组",
+      author: data.author || "优秀雅思 教研组",
       banner: data.banner || "",
       content,
     };

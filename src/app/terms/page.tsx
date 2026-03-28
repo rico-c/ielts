@@ -3,8 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "服务条款 - 优秀IELTS",
-  description: "优秀IELTS 服务条款",
+  title: "服务条款 - 优秀雅思",
+  description: "优秀雅思 服务条款",
 };
 
 export default function TermsPage() {
@@ -15,7 +15,7 @@ export default function TermsPage() {
           <Link href="/" className="flex items-center gap-2">
             <Image
               src="/logo.png"
-              alt="优秀IELTS"
+              alt="优秀雅思"
               width={120}
               height={30}
               className="rounded-lg"
@@ -35,7 +35,7 @@ export default function TermsPage() {
               <p className="mb-4">
                 本服务条款规定了您访问和使用网站 `ielts.youshowedu.com`
                 以及链接或引用本条款的相关服务页面时的权利和义务。本网站由
-                Youshow Education PTY LTD（以下简称“优秀IELTS”）运营。
+                Youshow Education PTY LTD（以下简称“优秀雅思”）运营。
               </p>
               <p className="mb-4">
                 本条款构成您与 Youshow Education PTY LTD
@@ -61,7 +61,7 @@ export default function TermsPage() {
                 服务说明
               </h2>
               <p className="mb-4">
-                优秀IELTS 是一个在线 IELTS
+                优秀雅思 是一个在线 IELTS
                 备考与练习平台，提供雅思口语模拟、听力/阅读/写作练习、
                 学习记录与相关数字化工具。我们提供的是电子化学习支持服务，
                 不构成线下或一对一教学培训服务，除非另有明确说明。
@@ -72,13 +72,13 @@ export default function TermsPage() {
               <h2 className="mb-4 mt-8 text-2xl font-semibold text-gray-900">
                 平台责任范围
               </h2>
-              <p className="mb-2">优秀IELTS 的责任限于：</p>
+              <p className="mb-2">优秀雅思 的责任限于：</p>
               <ul className="mb-4 list-disc space-y-2 pl-6">
                 <li>提供网站中展示的练习、模拟与学习辅助功能。</li>
                 <li>在合理范围内提供客户支持与账户协助。</li>
                 <li>维护平台基本可用性并持续优化体验。</li>
               </ul>
-              <p className="mb-2">优秀IELTS 不对以下事项作出保证：</p>
+              <p className="mb-2">优秀雅思 不对以下事项作出保证：</p>
               <ul className="mb-4 list-disc space-y-2 pl-6">
                 <li>任何考试结果、分数或录取结果的必然实现。</li>
                 <li>第三方服务、插件、支付或外部链接内容的持续可用性。</li>

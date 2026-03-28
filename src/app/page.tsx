@@ -265,7 +265,7 @@ export default async function Home() {
                     科学的备考方案
                   </h3>
                   <p className="mt-4 text-sm leading-7 text-slate-300">
-                    进入优秀IELTS 后，不需要先理解复杂功能结构。首页会先把你带进 AI 口语练习，再顺着路径进入真题训练和个人控制台。
+                    进入优秀雅思 后，不需要先理解复杂功能结构。首页会先把你带进 AI 口语练习，再顺着路径进入真题训练和个人控制台。
                   </p>
                   <div className="mt-8 rounded-[1.5rem] border border-white/10 bg-white/6 p-4">
                     <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">

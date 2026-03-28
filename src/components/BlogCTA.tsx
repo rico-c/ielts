@@ -17,7 +17,7 @@ export default function BlogCTA() {
       <div className="relative">
         <Image
           src="/logo.png"
-          alt="优秀IELTS"
+          alt="优秀雅思"
           width={120}
           height={32}
           className="mb-5 h-10 w-auto opacity-90"

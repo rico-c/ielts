@@ -2,7 +2,7 @@
 title: 2026 雅思常见扣分点深度解析：为什么你的雅思成绩总差 0.5 分
 date: 2026-03-23
 description: 围绕“雅思总差0.5分”“雅思常见扣分点”“雅思怎么提0.5分”等高频搜索问题，系统拆解听力、阅读、写作、口语四科最容易被忽略的失分原因，并给出更高效的提分思路。
-author: 优秀IELTS 教研组
+author: 优秀雅思 教研组
 banner: https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1400&q=80
 ---
 

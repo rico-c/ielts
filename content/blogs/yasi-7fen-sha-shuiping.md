@@ -2,7 +2,7 @@
 title: 雅思7分到底是什么水平？为什么大学录取常见门槛是6分、6.5分、7分
 date: 2026-03-21
 description: 围绕“雅思7分什么水平”“雅思6分和7分差距”“大学为什么常卡雅思6分以上”等高频问题，系统拆解雅思0-9分能力画像与留学申请中的常见语言门槛。
-author: 优秀IELTS 教研组
+author: 优秀雅思 教研组
 banner: https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1400&q=80
 ---
 

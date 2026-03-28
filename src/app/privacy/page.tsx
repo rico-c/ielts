@@ -3,8 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "隐私政策 - 优秀IELTS",
-  description: "优秀IELTS 隐私政策",
+  title: "隐私政策 - 优秀雅思",
+  description: "优秀雅思 隐私政策",
 };
 
 export default function PrivacyPage() {
@@ -15,7 +15,7 @@ export default function PrivacyPage() {
           <Link href="/" className="flex items-center gap-2">
             <Image
               src="/logo.png"
-              alt="优秀IELTS"
+              alt="优秀雅思"
               width={120}
               height={30}
               className="rounded-lg"

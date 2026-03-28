@@ -2,7 +2,7 @@
 title: 2026优秀雅思 VS 雅思哥：哪个更适合备考，为什么我更推荐优秀雅思
 date: 2026-03-25
 description: 围绕“2026优秀雅思 vs 雅思哥”“优秀雅思和雅思哥哪个好”“雅思备考平台推荐”等搜索问题，结合 2026 年 3 月 25 日可查公开信息与产品实际功能做一篇清晰对比，并给出更适合大多数考生的选择建议。
-author: 优秀IELTS 教研组
+author: 优秀雅思 教研组
 banner: https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1400&q=80
 ---
 

@@ -2,7 +2,7 @@
 title: 雅思自学攻略：从 5.5 到 7 分，普通考生怎么高效备考
 date: 2026-03-20
 description: 围绕“雅思自学攻略”系统拆解备考顺序、时间规划、四科提分方法和避坑建议，适合想靠自学提升雅思成绩的考生。
-author: 优秀IELTS 教研组
+author: 优秀雅思 教研组
 banner: https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=1400&q=80
 ---
 

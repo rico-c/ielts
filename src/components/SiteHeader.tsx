@@ -9,7 +9,7 @@ export default function SiteHeader() {
         <Link href="/" className="flex items-center">
           <Image
             src="/logo.png"
-            alt="优秀IELTS"
+            alt="优秀雅思"
             width={160}
             height={40}
             className="h-12 w-auto"

@@ -9,14 +9,14 @@ export default function SiteFooter() {
           <div>
             <Image
               src="/logo.png"
-              alt="优秀IELTS"
+              alt="优秀雅思"
               width={120}
               height={30}
               className="mb-6 h-10 w-auto opacity-80"
               unoptimized
             />
             <p className="text-sm leading-7 text-slate-500">
-              优秀IELTS 聚合 AI 口语模拟、真题训练、博客内容与个人备考工作台，把备考方法和实际训练接到一起。
+              优秀雅思 聚合 AI 口语模拟、真题训练、博客内容与个人备考工作台，把备考方法和实际训练接到一起。
             </p>
           </div>
 
@@ -74,7 +74,7 @@ export default function SiteFooter() {
 
         <div className="border-t border-slate-200 pt-8">
           <div className="flex flex-col items-center justify-center gap-4 text-sm text-slate-400 md:flex-row">
-            <p>© 2026 优秀IELTS. All rights reserved.</p>
+            <p>© 2026 优秀雅思. All rights reserved.</p>
             <div className="flex gap-4">
               <Link href="/terms" className="transition-colors hover:text-slate-600">
                 服务条款
