@@ -56,6 +56,29 @@ const workflowSteps = [
   },
 ];
 
+const encouragementMessages = [
+  "今天认真练一点，离目标分就更近一点。",
+  "先开始，再优秀，你已经在路上了。",
+  "每一次开口、每一篇练习，都在帮你涨分。",
+  "稳住节奏，今天的努力会在考场上发光。",
+  "别怕慢，持续练的人一定会看到进步。",
+  "现在多练一分钟，考试时就多一分底气。",
+  "你不是在重复练习，你是在积累实力。",
+  "今天这次投入，会变成明天的从容。",
+  "把今天练扎实，成绩自然会回应你。",
+  "继续往前，你的英语正在一点点变强。",
+  "每一套题、每一次复盘，都算数。",
+  "先把今天完成好，结果会慢慢追上你。",
+  "不用等状态最好，现在开始就是最好。",
+  "你以为的普通坚持，最后都会变成优势。",
+  "把难题练透，考场上就会更轻松。",
+  "今天愿意坐下来练，本身就很了不起。",
+  "进步不一定立刻看见，但一定正在发生。",
+  "别怀疑这份努力，它会在分数里体现出来。",
+  "专注眼前这一练，你会比昨天更好。",
+  "再坚持一下，你想要的成绩正在靠近。",
+];
+
 function formatDuration(seconds: number) {
   if (seconds <= 0) return "0分钟";
 
@@ -110,6 +133,9 @@ function getActivityBadge(recordType: string) {
 
 export default async function DashboardPage() {
   const { userId } = await auth();
+  const encouragementMessage =
+    encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)];
+
   const analytics = userId
     ? await getPracticeActivityOverview(userId)
     : {
@@ -144,15 +170,13 @@ export default async function DashboardPage() {
           <div className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-blue-700 shadow-sm">
             IELTS Workspace
           </div>
-          <h1 className="mt-5 text-4xl font-extrabold leading-tight text-slate-900 sm:text-5xl">
-            你的雅思训练工作台
-            <br />
-            从今天该练什么开始
+          <h1 className="mt-5 text-4xl font-extrabold leading-tight text-slate-900 sm:text-5xl font-song">
+            {encouragementMessage}
           </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
+          {/* <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
             这里现在不只是入口页，也会开始沉淀你的训练数据。剑雅真题、口语模拟和精听练习的时长与题目记录，
             都会回收到当前概览里统一展示。
-          </p>
+          </p> */}
 
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
@@ -172,6 +196,12 @@ export default async function DashboardPage() {
               className="inline-flex items-center justify-center rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition-colors hover:border-blue-200 hover:text-blue-600"
             >
               打开精听练习
+            </Link>
+            <Link
+              href="/dashboard/word-review"
+              className="inline-flex items-center justify-center rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition-colors hover:border-blue-200 hover:text-blue-600"
+            >
+              开始复习单词
             </Link>
           </div>
 
@@ -195,7 +225,7 @@ export default async function DashboardPage() {
           {overviewStats.map((card) => (
             <div
               key={card.label}
-              className="rounded-[1.5rem] border border-slate-200/80 bg-white p-6 text-center shadow-sm"
+              className="flex min-h-[190px] flex-col justify-center rounded-[1.5rem] border border-slate-200/80 bg-white p-6 text-center shadow-sm"
             >
               <div className="text-3xl font-extrabold text-blue-600">{card.value}</div>
               <div className="mt-2 font-semibold text-slate-900">{card.label}</div>
