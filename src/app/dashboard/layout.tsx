@@ -194,7 +194,7 @@ export default function DashboardLayout({
           >
             <Image
               src="/logo.png"
-              alt="优秀IELTS"
+              alt="优秀雅思"
               width={132}
               height={32}
               className="h-10 w-auto"
