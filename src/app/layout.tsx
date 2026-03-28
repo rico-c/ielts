@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { zhCN } from "@clerk/localizations";
 import { Cormorant_Garamond, Manrope } from "next/font/google";
+import HotjarTracker from "@/components/HotjarTracker";
 import "./globals.css";
 
 const displayFont = Cormorant_Garamond({
@@ -30,6 +31,7 @@ export default function RootLayout({
 		<html lang="zh-CN">
 			<body className={`${displayFont.variable} ${bodyFont.variable} antialiased`}>
 				<ClerkProvider localization={zhCN}>{children}</ClerkProvider>
+				<HotjarTracker />
 			</body>
 		</html>
 	);

@@ -2347,6 +2347,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@hotjar/browser@npm:^1.0.9":
+  version: 1.0.9
+  resolution: "@hotjar/browser@npm:1.0.9"
+  checksum: 10c0/9dee998245031729ef79f0087cbd5bad99bf04de981f88fe40f62e998db2907f36182c703e92e6af0073c62962774c98edc790cd7d5f62c1c0399357b7c70b51
+  languageName: node
+  linkType: hard
+
 "@humanfs/core@npm:^0.19.1":
   version: 0.19.1
   resolution: "@humanfs/core@npm:0.19.1"
@@ -7161,6 +7168,7 @@ __metadata:
     "@clerk/nextjs": "npm:^6.36.7"
     "@elevenlabs/react": "npm:^0.14.2"
     "@eslint/eslintrc": "npm:3"
+    "@hotjar/browser": "npm:^1.0.9"
     "@opennextjs/cloudflare": "npm:1.14.0"
     "@tailwindcss/postcss": "npm:4.1.17"
     "@types/node": "npm:24.10.1"

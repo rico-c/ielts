@@ -23,6 +23,43 @@ export type PracticeActivityRecord = {
   endedAt: number;
 };
 
+export type PracticeActivityDailyStat = {
+  dateKey: string;
+  durationSeconds: number;
+  sessionCount: number;
+  questionCount: number;
+};
+
+export type PracticeActivityDistributionStat = {
+  key: string;
+  durationSeconds: number;
+  sessionCount: number;
+  questionCount: number;
+};
+
+export type PracticeActivityHourStat = {
+  hour: number;
+  durationSeconds: number;
+  sessionCount: number;
+};
+
+export type PracticeActivityDashboard = {
+  summary: {
+    todayDurationSeconds: number;
+    totalDurationSeconds: number;
+    totalSessionCount: number;
+    totalQuestionCount: number;
+    averageSessionDurationSeconds: number;
+    longestSessionDurationSeconds: number;
+    activeDayCount: number;
+  };
+  recentRecords: PracticeActivityRecord[];
+  dailyStats: PracticeActivityDailyStat[];
+  activityTypeStats: PracticeActivityDistributionStat[];
+  moduleStats: PracticeActivityDistributionStat[];
+  hourStats: PracticeActivityHourStat[];
+};
+
 type PracticeActivityRow = {
   id: number;
   activity_type: PracticeActivityType;
@@ -39,6 +76,36 @@ type PracticeActivityRow = {
   duration_seconds: number;
   started_at: number;
   ended_at: number;
+};
+
+type PracticeActivitySummaryRow = {
+  today_duration_seconds: number | null;
+  total_duration_seconds: number | null;
+  total_session_count: number | null;
+  total_question_count: number | null;
+  average_session_duration_seconds: number | null;
+  longest_session_duration_seconds: number | null;
+  active_day_count: number | null;
+};
+
+type PracticeActivityDailyRow = {
+  date_key: string;
+  duration_seconds: number | null;
+  session_count: number | null;
+  question_count: number | null;
+};
+
+type PracticeActivityDistributionRow = {
+  stat_key: string;
+  duration_seconds: number | null;
+  session_count: number | null;
+  question_count: number | null;
+};
+
+type PracticeActivityHourRow = {
+  hour: number | null;
+  duration_seconds: number | null;
+  session_count: number | null;
 };
 
 function normalizeText(value: unknown, maxLength: number) {
@@ -208,22 +275,197 @@ export async function getPracticeActivityOverview(userId: string) {
   return {
     todayDurationSeconds: Number(todayRow?.total ?? 0),
     totalDurationSeconds: Number(totalRow?.total ?? 0),
-    recentRecords: (recentRows.results ?? []).map((row) => ({
-      id: row.id,
-      activityType: row.activity_type,
-      sourcePath: row.source_path,
-      itemTitle: row.item_title,
-      itemSubtitle: row.item_subtitle,
-      module: row.module,
-      bookNo: row.book_no,
-      testNo: row.test_no,
-      partNo: row.part_no,
-      topicId: row.topic_id,
-      topicGroup: row.topic_group,
-      questionCount: row.question_count,
-      durationSeconds: row.duration_seconds,
-      startedAt: row.started_at,
-      endedAt: row.ended_at,
+    recentRecords: (recentRows.results ?? []).map(mapPracticeActivityRecord),
+  };
+}
+
+function mapPracticeActivityRecord(row: PracticeActivityRow): PracticeActivityRecord {
+  return {
+    id: row.id,
+    activityType: row.activity_type,
+    sourcePath: row.source_path,
+    itemTitle: row.item_title,
+    itemSubtitle: row.item_subtitle,
+    module: row.module,
+    bookNo: row.book_no,
+    testNo: row.test_no,
+    partNo: row.part_no,
+    topicId: row.topic_id,
+    topicGroup: row.topic_group,
+    questionCount: row.question_count,
+    durationSeconds: row.duration_seconds,
+    startedAt: row.started_at,
+    endedAt: row.ended_at,
+  };
+}
+
+export async function getPracticeActivityDashboard(
+  userId: string,
+  options?: {
+    dailyDays?: number;
+    recentLimit?: number;
+  },
+): Promise<PracticeActivityDashboard> {
+  const dailyDays = Math.max(7, Math.min(90, Math.floor(options?.dailyDays ?? 28)));
+  const recentLimit = Math.max(6, Math.min(30, Math.floor(options?.recentLimit ?? 12)));
+  const db = await getDatabase();
+
+  const [summaryRow, recentRows, dailyRows, activityTypeRows, moduleRows, hourRows] =
+    await Promise.all([
+      db
+        .prepare(
+          `
+            SELECT
+              COALESCE(SUM(CASE
+                WHEN date(started_at, 'unixepoch', '+8 hours') = date('now', '+8 hours')
+                THEN duration_seconds
+                ELSE 0
+              END), 0) AS today_duration_seconds,
+              COALESCE(SUM(duration_seconds), 0) AS total_duration_seconds,
+              COUNT(*) AS total_session_count,
+              COALESCE(SUM(question_count), 0) AS total_question_count,
+              COALESCE(AVG(duration_seconds), 0) AS average_session_duration_seconds,
+              COALESCE(MAX(duration_seconds), 0) AS longest_session_duration_seconds,
+              COUNT(DISTINCT date(started_at, 'unixepoch', '+8 hours')) AS active_day_count
+            FROM practice_activity_logs
+            WHERE user_id = ?1
+          `,
+        )
+        .bind(userId)
+        .first<PracticeActivitySummaryRow>(),
+      db
+        .prepare(
+          `
+            SELECT
+              id,
+              activity_type,
+              source_path,
+              item_title,
+              item_subtitle,
+              module,
+              book_no,
+              test_no,
+              part_no,
+              topic_id,
+              topic_group,
+              question_count,
+              duration_seconds,
+              started_at,
+              ended_at
+            FROM practice_activity_logs
+            WHERE user_id = ?1
+            ORDER BY ended_at DESC, id DESC
+            LIMIT ?2
+          `,
+        )
+        .bind(userId, recentLimit)
+        .all<PracticeActivityRow>(),
+      db
+        .prepare(
+          `
+            SELECT
+              date(started_at, 'unixepoch', '+8 hours') AS date_key,
+              COALESCE(SUM(duration_seconds), 0) AS duration_seconds,
+              COUNT(*) AS session_count,
+              COALESCE(SUM(question_count), 0) AS question_count
+            FROM practice_activity_logs
+            WHERE user_id = ?1
+              AND started_at >= unixepoch('now', '-${dailyDays - 1} days', '+8 hours', '-8 hours', 'start of day')
+            GROUP BY date_key
+            ORDER BY date_key ASC
+          `,
+        )
+        .bind(userId)
+        .all<PracticeActivityDailyRow>(),
+      db
+        .prepare(
+          `
+            SELECT
+              activity_type AS stat_key,
+              COALESCE(SUM(duration_seconds), 0) AS duration_seconds,
+              COUNT(*) AS session_count,
+              COALESCE(SUM(question_count), 0) AS question_count
+            FROM practice_activity_logs
+            WHERE user_id = ?1
+            GROUP BY activity_type
+            ORDER BY duration_seconds DESC, session_count DESC
+          `,
+        )
+        .bind(userId)
+        .all<PracticeActivityDistributionRow>(),
+      db
+        .prepare(
+          `
+            SELECT
+              CASE
+                WHEN activity_type = 'cambridge_practice' AND module IS NOT NULL AND module != '' THEN module
+                WHEN activity_type = 'speaking_mock' THEN 'speaking_mock'
+                WHEN activity_type = 'intensive_listening' THEN 'intensive_listening'
+                ELSE 'other'
+              END AS stat_key,
+              COALESCE(SUM(duration_seconds), 0) AS duration_seconds,
+              COUNT(*) AS session_count,
+              COALESCE(SUM(question_count), 0) AS question_count
+            FROM practice_activity_logs
+            WHERE user_id = ?1
+            GROUP BY stat_key
+            ORDER BY duration_seconds DESC, session_count DESC
+          `,
+        )
+        .bind(userId)
+        .all<PracticeActivityDistributionRow>(),
+      db
+        .prepare(
+          `
+            SELECT
+              CAST(strftime('%H', datetime(started_at, 'unixepoch', '+8 hours')) AS INTEGER) AS hour,
+              COALESCE(SUM(duration_seconds), 0) AS duration_seconds,
+              COUNT(*) AS session_count
+            FROM practice_activity_logs
+            WHERE user_id = ?1
+            GROUP BY hour
+            ORDER BY hour ASC
+          `,
+        )
+        .bind(userId)
+        .all<PracticeActivityHourRow>(),
+    ]);
+
+  return {
+    summary: {
+      todayDurationSeconds: Number(summaryRow?.today_duration_seconds ?? 0),
+      totalDurationSeconds: Number(summaryRow?.total_duration_seconds ?? 0),
+      totalSessionCount: Number(summaryRow?.total_session_count ?? 0),
+      totalQuestionCount: Number(summaryRow?.total_question_count ?? 0),
+      averageSessionDurationSeconds: Math.round(
+        Number(summaryRow?.average_session_duration_seconds ?? 0),
+      ),
+      longestSessionDurationSeconds: Number(summaryRow?.longest_session_duration_seconds ?? 0),
+      activeDayCount: Number(summaryRow?.active_day_count ?? 0),
+    },
+    recentRecords: (recentRows.results ?? []).map(mapPracticeActivityRecord),
+    dailyStats: (dailyRows.results ?? []).map((row) => ({
+      dateKey: row.date_key,
+      durationSeconds: Number(row.duration_seconds ?? 0),
+      sessionCount: Number(row.session_count ?? 0),
+      questionCount: Number(row.question_count ?? 0),
+    })),
+    activityTypeStats: (activityTypeRows.results ?? []).map((row) => ({
+      key: row.stat_key,
+      durationSeconds: Number(row.duration_seconds ?? 0),
+      sessionCount: Number(row.session_count ?? 0),
+      questionCount: Number(row.question_count ?? 0),
+    })),
+    moduleStats: (moduleRows.results ?? []).map((row) => ({
+      key: row.stat_key,
+      durationSeconds: Number(row.duration_seconds ?? 0),
+      sessionCount: Number(row.session_count ?? 0),
+      questionCount: Number(row.question_count ?? 0),
+    })),
+    hourStats: (hourRows.results ?? []).map((row) => ({
+      hour: Number(row.hour ?? 0),
+      durationSeconds: Number(row.duration_seconds ?? 0),
+      sessionCount: Number(row.session_count ?? 0),
     })),
   };
 }

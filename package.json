@@ -15,6 +15,7 @@
 		"@clerk/localizations": "^3.34.0",
 		"@clerk/nextjs": "^6.36.7",
 		"@elevenlabs/react": "^0.14.2",
+		"@hotjar/browser": "^1.0.9",
 		"@opennextjs/cloudflare": "1.14.0",
 		"dayjs": "^1.11.20",
 		"google-auth-library": "^9.15.1",
