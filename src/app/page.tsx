@@ -119,9 +119,9 @@ export default async function Home() {
               </div>
 
               <h1 className="font-song mb-8 text-5xl font-semibold tracking-tight text-gray-900 sm:text-6xl">
-                <span className="text-blue-600">2026机考改革</span>必备
+                2026<span className="text-blue-600">机考改革</span>必备
                 <br />
-                雅思备考神器
+                雅思学习神器
               </h1>
 
               <p className="mb-10 max-w-2xl text-xl leading-relaxed text-gray-500">
