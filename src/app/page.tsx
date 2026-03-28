@@ -119,13 +119,13 @@ export default async function Home() {
               </div>
 
               <h1 className="font-song mb-8 text-5xl font-semibold tracking-tight text-gray-900 sm:text-6xl">
-                <span className="text-blue-600">99%</span>同学不知道的
+                <span className="text-blue-600">2026机考改革</span>必备
                 <br />
                 雅思备考神器
               </h1>
 
               <p className="mb-10 max-w-2xl text-xl leading-relaxed text-gray-500">
-                2026全新制作的雅思备考平台，使用超舒适的用户交互体验，让你的备考丝滑加倍
+                8-20剑雅真题，行业领先的AI口语模拟，写作评分，听力精听，阅读批改，丝滑而高效率的雅思备考体验
               </p>
 
               <div className="flex flex-wrap gap-4">
@@ -196,22 +196,22 @@ export default async function Home() {
                 const Icon = feature.icon;
 
                 return (
-                <article
-                  key={feature.title}
-                  className="group rounded-3xl border border-gray-100 bg-white p-8 transition-all duration-300 hover:-translate-y-1 hover:border-transparent hover:shadow-2xl hover:shadow-gray-200/50"
-                >
-                  <div
-                    className={`mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${feature.accent} text-white shadow-lg ring-1 ring-white/50`}
+                  <article
+                    key={feature.title}
+                    className="group rounded-3xl border border-gray-100 bg-white p-8 transition-all duration-300 hover:-translate-y-1 hover:border-transparent hover:shadow-2xl hover:shadow-gray-200/50"
                   >
-                    <Icon className="h-6 w-6" strokeWidth={2.1} />
-                  </div>
-                  <h3 className="mb-3 text-xl font-bold text-gray-900 transition-colors group-hover:text-blue-600">
-                    {feature.title}
-                  </h3>
-                  <p className="text-sm leading-relaxed text-gray-500">
-                    {feature.description}
-                  </p>
-                </article>
+                    <div
+                      className={`mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${feature.accent} text-white shadow-lg ring-1 ring-white/50`}
+                    >
+                      <Icon className="h-6 w-6" strokeWidth={2.1} />
+                    </div>
+                    <h3 className="mb-3 text-xl font-bold text-gray-900 transition-colors group-hover:text-blue-600">
+                      {feature.title}
+                    </h3>
+                    <p className="text-sm leading-relaxed text-gray-500">
+                      {feature.description}
+                    </p>
+                  </article>
                 );
               })}
             </div>
@@ -453,7 +453,10 @@ export default async function Home() {
                     {post.date}
                   </time>
                   <h3 className="mt-4 text-xl font-bold leading-8 text-gray-900">
-                    <Link href={`/blogs/${post.slug}`} className="transition-colors hover:text-blue-600">
+                    <Link
+                      href={`/blogs/${post.slug}`}
+                      className="transition-colors hover:text-blue-600"
+                    >
                       {post.title}
                     </Link>
                   </h3>
