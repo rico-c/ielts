@@ -778,6 +778,12 @@ export async function generateTurnPronunciationAssessment(
   const audioMetadata = getWavAudioMetadata(audioBuffer);
   const audioSummary = audioMetadata.summary;
 
+  if (audioMetadata.durationSeconds === null) {
+    throw new Error(
+      `上传录音不是有效的 WAV PCM 文件。当前音频头信息：${audioSummary}。请重新录音后再提交。`,
+    );
+  }
+
   if (
     audioMetadata.durationSeconds !== null &&
     audioMetadata.durationSeconds < MIN_SPEAKING_AUDIO_SECONDS

@@ -77,6 +77,31 @@ function buildTimestampLabel(date = new Date()) {
     .replace(/\.\d{3}Z$/, "Z");
 }
 
+function inferUploadedAudioExtension(file: File) {
+  const normalizedName =
+    typeof file.name === "string" ? file.name.trim().toLowerCase() : "";
+  const normalizedType =
+    typeof file.type === "string" ? file.type.trim().toLowerCase() : "";
+
+  if (normalizedName.endsWith(".wav") || normalizedType === "audio/wav") {
+    return "wav";
+  }
+
+  if (normalizedName.endsWith(".webm") || normalizedType === "audio/webm") {
+    return "webm";
+  }
+
+  if (
+    normalizedName.endsWith(".m4a") ||
+    normalizedType === "audio/mp4" ||
+    normalizedType === "audio/m4a"
+  ) {
+    return "m4a";
+  }
+
+  return "wav";
+}
+
 function buildErrorMessage(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   return message.trim().slice(0, 2000) || "Unknown scoring error.";
@@ -742,7 +767,7 @@ export async function POST(request: Request) {
         safeUserId,
         safeTopicId,
         sessionUuid,
-        `${String(index + 1).padStart(2, "0")}_${turn.phase}_${turn.questionId}_${fileTimestamp}.wav`,
+        `${String(index + 1).padStart(2, "0")}_${turn.phase}_${turn.questionId}_${fileTimestamp}.${inferUploadedAudioExtension(fileEntry)}`,
       ].join("/");
 
       const audioUrl = await uploadUserAudio(env, {
