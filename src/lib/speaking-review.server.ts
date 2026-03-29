@@ -222,11 +222,10 @@ function getWavAudioMetadata(audioBuffer: Buffer): WavAudioMetadata {
   );
   const riff = readAscii(view, 0, 4);
   const wave = readAscii(view, 8, 4);
-  const fmt = readAscii(view, 12, 4);
 
-  if (riff !== "RIFF" || wave !== "WAVE" || fmt !== "fmt ") {
+  if (riff !== "RIFF" || wave !== "WAVE") {
     return {
-      summary: `bytes=${audioBuffer.byteLength}, header=${riff}/${wave}/${fmt}`,
+      summary: `bytes=${audioBuffer.byteLength}, header=${riff}/${wave}`,
       durationSeconds: null,
       channelCount: null,
       sampleRate: null,
@@ -236,16 +235,64 @@ function getWavAudioMetadata(audioBuffer: Buffer): WavAudioMetadata {
     };
   }
 
-  const channelCount = view.getUint16(22, true);
-  const sampleRate = view.getUint32(24, true);
-  const bitsPerSample = view.getUint16(34, true);
-  const dataSize = view.getUint32(40, true);
+  let chunkOffset = 12;
+  let channelCount: number | null = null;
+  let sampleRate: number | null = null;
+  let bitsPerSample: number | null = null;
+  let dataOffset: number | null = null;
+  let dataSize: number | null = null;
+  const visitedChunks: string[] = [];
+
+  while (chunkOffset + 8 <= audioBuffer.byteLength) {
+    const chunkId = readAscii(view, chunkOffset, 4);
+    const chunkSize = view.getUint32(chunkOffset + 4, true);
+    visitedChunks.push(chunkId);
+
+    const chunkDataOffset = chunkOffset + 8;
+    if (chunkDataOffset + chunkSize > audioBuffer.byteLength) {
+      break;
+    }
+
+    if (chunkId === "fmt " && chunkSize >= 16) {
+      channelCount = view.getUint16(chunkDataOffset + 2, true);
+      sampleRate = view.getUint32(chunkDataOffset + 4, true);
+      bitsPerSample = view.getUint16(chunkDataOffset + 14, true);
+    } else if (chunkId === "data") {
+      dataOffset = chunkDataOffset;
+      dataSize = chunkSize;
+      if (channelCount !== null && sampleRate !== null && bitsPerSample !== null) {
+        break;
+      }
+    }
+
+    chunkOffset = chunkDataOffset + chunkSize + (chunkSize % 2);
+  }
+
+  if (
+    channelCount === null ||
+    sampleRate === null ||
+    bitsPerSample === null ||
+    dataOffset === null ||
+    dataSize === null
+  ) {
+    return {
+      summary: `bytes=${audioBuffer.byteLength}, chunks=${visitedChunks.join("/") || "none"}`,
+      durationSeconds: null,
+      channelCount,
+      sampleRate,
+      bitsPerSample,
+      rmsLevel: null,
+      peakLevel: null,
+    };
+  }
+
   let peakLevel = 0;
   let squareSum = 0;
   let sampleCount = 0;
 
   if (bitsPerSample === 16) {
-    for (let offset = 44; offset + 1 < audioBuffer.byteLength; offset += 2) {
+    const dataEnd = Math.min(dataOffset + dataSize, audioBuffer.byteLength);
+    for (let offset = dataOffset; offset + 1 < dataEnd; offset += 2) {
       const normalized = view.getInt16(offset, true) / 32768;
       const absolute = Math.abs(normalized);
       peakLevel = Math.max(peakLevel, absolute);
@@ -268,12 +315,13 @@ function getWavAudioMetadata(audioBuffer: Buffer): WavAudioMetadata {
   const normalizedPeak =
     sampleCount > 0 ? Number(peakLevel.toFixed(4)) : null;
 
-  return {
-    summary: [
-      `bytes=${audioBuffer.byteLength}`,
-      `channels=${channelCount}`,
-      `sampleRate=${sampleRate}`,
-      `bitsPerSample=${bitsPerSample}`,
+    return {
+      summary: [
+        `bytes=${audioBuffer.byteLength}`,
+        `chunks=${visitedChunks.join("/")}`,
+        `channels=${channelCount}`,
+        `sampleRate=${sampleRate}`,
+        `bitsPerSample=${bitsPerSample}`,
       `dataSize=${dataSize}`,
       `duration=${durationSeconds ?? "unknown"}s`,
       `rms=${rmsLevel ?? "unknown"}`,
