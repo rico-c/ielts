@@ -199,6 +199,7 @@ type WavAudioMetadata = {
   bitsPerSample: number | null;
   rmsLevel: number | null;
   peakLevel: number | null;
+  pcmData: Buffer | null;
 };
 
 function getWavAudioMetadata(audioBuffer: Buffer): WavAudioMetadata {
@@ -211,6 +212,7 @@ function getWavAudioMetadata(audioBuffer: Buffer): WavAudioMetadata {
       bitsPerSample: null,
       rmsLevel: null,
       peakLevel: null,
+      pcmData: null,
     };
   }
 
@@ -231,6 +233,7 @@ function getWavAudioMetadata(audioBuffer: Buffer): WavAudioMetadata {
       bitsPerSample: null,
       rmsLevel: null,
       peakLevel: null,
+      pcmData: null,
     };
   }
 
@@ -282,15 +285,24 @@ function getWavAudioMetadata(audioBuffer: Buffer): WavAudioMetadata {
       bitsPerSample,
       rmsLevel: null,
       peakLevel: null,
+      pcmData: null,
     };
   }
+
+  const remainingBytes = Math.max(0, audioBuffer.byteLength - dataOffset);
+  const effectiveDataSize =
+    dataSize > 0 ? Math.min(dataSize, remainingBytes) : remainingBytes;
+  const pcmData =
+    effectiveDataSize > 0
+      ? audioBuffer.subarray(dataOffset, dataOffset + effectiveDataSize)
+      : null;
 
   let peakLevel = 0;
   let squareSum = 0;
   let sampleCount = 0;
 
-  if (bitsPerSample === 16) {
-    const dataEnd = Math.min(dataOffset + dataSize, audioBuffer.byteLength);
+  if (bitsPerSample === 16 && pcmData) {
+    const dataEnd = dataOffset + effectiveDataSize;
     for (let offset = dataOffset; offset + 1 < dataEnd; offset += 2) {
       const normalized = view.getInt16(offset, true) / 32768;
       const absolute = Math.abs(normalized);
@@ -304,7 +316,7 @@ function getWavAudioMetadata(audioBuffer: Buffer): WavAudioMetadata {
     channelCount > 0 && bitsPerSample > 0 && sampleRate > 0
       ? Number(
           (
-            dataSize /
+            effectiveDataSize /
             (sampleRate * channelCount * Math.max(1, bitsPerSample / 8))
           ).toFixed(2),
         )
@@ -321,18 +333,55 @@ function getWavAudioMetadata(audioBuffer: Buffer): WavAudioMetadata {
         `channels=${channelCount}`,
         `sampleRate=${sampleRate}`,
         `bitsPerSample=${bitsPerSample}`,
-      `dataSize=${dataSize}`,
-      `duration=${durationSeconds ?? "unknown"}s`,
-      `rms=${rmsLevel ?? "unknown"}`,
-      `peak=${normalizedPeak ?? "unknown"}`,
-    ].join(", "),
+        `dataSize=${dataSize}`,
+        `effectiveDataSize=${effectiveDataSize}`,
+        `duration=${durationSeconds ?? "unknown"}s`,
+        `rms=${rmsLevel ?? "unknown"}`,
+        `peak=${normalizedPeak ?? "unknown"}`,
+      ].join(", "),
     durationSeconds,
     channelCount,
     sampleRate,
     bitsPerSample,
     rmsLevel,
     peakLevel: normalizedPeak,
+    pcmData,
   };
+}
+
+function buildCanonicalPcmWavBuffer(metadata: WavAudioMetadata) {
+  if (
+    !metadata.pcmData ||
+    metadata.channelCount === null ||
+    metadata.sampleRate === null ||
+    metadata.bitsPerSample === null
+  ) {
+    return null;
+  }
+
+  const headerSize = 44;
+  const pcmData = metadata.pcmData;
+  const buffer = Buffer.alloc(headerSize + pcmData.byteLength);
+  const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+  const blockAlign = metadata.channelCount * Math.max(1, metadata.bitsPerSample / 8);
+  const byteRate = metadata.sampleRate * blockAlign;
+
+  buffer.write("RIFF", 0, "ascii");
+  view.setUint32(4, headerSize + pcmData.byteLength - 8, true);
+  buffer.write("WAVE", 8, "ascii");
+  buffer.write("fmt ", 12, "ascii");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, metadata.channelCount, true);
+  view.setUint32(24, metadata.sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, metadata.bitsPerSample, true);
+  buffer.write("data", 36, "ascii");
+  view.setUint32(40, pcmData.byteLength, true);
+  pcmData.copy(buffer, headerSize);
+
+  return buffer;
 }
 
 function getSpeechSdkEnumKey(enumLike: Record<string, unknown> | undefined, value: unknown) {
@@ -824,8 +873,9 @@ export async function generateTurnPronunciationAssessment(
   const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
   const audioMetadata = getWavAudioMetadata(audioBuffer);
   const audioSummary = audioMetadata.summary;
+  const canonicalAudioBuffer = buildCanonicalPcmWavBuffer(audioMetadata);
 
-  if (audioMetadata.durationSeconds === null) {
+  if (audioMetadata.durationSeconds === null || !canonicalAudioBuffer) {
     throw new Error(
       `上传录音不是有效的 WAV PCM 文件。当前音频头信息：${audioSummary}。请重新录音后再提交。`,
     );
@@ -853,7 +903,7 @@ export async function generateTurnPronunciationAssessment(
   });
 
   const audioConfig = SpeechSDK.AudioConfig.fromWavFileInput(
-    audioBuffer,
+    canonicalAudioBuffer,
     `turn-${turn.turnId}.wav`,
   );
   const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
