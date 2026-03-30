@@ -68,7 +68,6 @@ type RecognizedSegment = {
 const DEFAULT_WORKERS_AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const DEFAULT_WORKERS_AI_URL = "https://llm.ricardocao-biker.workers.dev";
 const DEFAULT_AZURE_LANGUAGE = "en-US";
-const MIN_SPEAKING_AUDIO_SECONDS = 1;
 const SpeechSDK = (SpeechSDKModule as { default?: any }).default ?? SpeechSDKModule;
 
 const SPEAKING_REVIEW_SCHEMA = {
@@ -829,15 +828,6 @@ export async function generateTurnPronunciationAssessment(
   if (audioMetadata.durationSeconds === null) {
     throw new Error(
       `上传录音不是有效的 WAV PCM 文件。当前音频头信息：${audioSummary}。请重新录音后再提交。`,
-    );
-  }
-
-  if (
-    audioMetadata.durationSeconds !== null &&
-    audioMetadata.durationSeconds < MIN_SPEAKING_AUDIO_SECONDS
-  ) {
-    throw new Error(
-      `录音时长过短（${audioMetadata.durationSeconds}s）。请至少作答 ${MIN_SPEAKING_AUDIO_SECONDS} 秒后再提交。`,
     );
   }
 
