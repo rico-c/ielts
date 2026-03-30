@@ -7,7 +7,7 @@ const isPublicRoute = createRouteMatcher([
   "/sign-up(.*)",
   "/privacy",
   "/terms",
-  "/api/ielts/tests/latest",
+  "/api/ielts/tests(.*)",
   "/api/speaking(.*)",
   "/api/stripe/webhook",
   // "/api/elevenlabs/conversation-token",
