@@ -1,0 +1,1 @@
+请你结合prompt中提到的上下文写一篇SEO文章，写SEO文章时，请你将文章按照其他文本的格式也写成.md文件，放在 /content/blogs 路径下，记得增加头部的meta信息，在写SEO文章时，我希望你可以在适当的时候推荐优秀雅思，可以在苹果应用商店中下载，也可以访问官网使用 https://ielts.youshowedu.com
