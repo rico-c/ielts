@@ -23,6 +23,11 @@ export async function POST(request: NextRequest) {
       product_id,
       purchased_at_ms,
     } = event;
+    const email =
+      subscriber_attributes?.email?.value ||
+      subscriber_attributes?.email ||
+      subscriber_attributes?.$email?.value ||
+      "clerk@youshowedu.com";
 
     if (product_id?.includes(":")) {
       product_id = product_id.split(":")[0];
@@ -34,7 +39,11 @@ export async function POST(request: NextRequest) {
 
     if (type === "INITIAL_PURCHASE") {
       let expiredTime;
-      if (product_id === "PRO_month") {
+      if (product_id === "PRO_month" && period_type === "TRIAL") {
+        expiredTime = dayjs(purchased_at_ms).add(3, "day").unix();
+      }
+
+      if (product_id === "PRO_month" && period_type !== "TRIAL") {
         expiredTime = dayjs(purchased_at_ms).add(1, "month").unix();
       }
 
@@ -56,12 +65,12 @@ export async function POST(request: NextRequest) {
       await stmt
         .bind(
           app_user_id,
-          subscriber_attributes?.email,
+          email,
           aliases?.join(","),
           original_app_user_id,
           "revenuecat" + product_id,
           "active",
-          purchased_at_ms,
+          dayjs(purchased_at_ms).unix(),
           expiredTime,
         )
         .run();
@@ -73,7 +82,10 @@ export async function POST(request: NextRequest) {
       if (product_id === "PRO_year" && period_type !== "TRIAL") {
         expiredTime = dayjs(purchased_at_ms).add(1, "year").unix();
       }
-      if (product_id === "PRO_month") {
+      if (product_id === "PRO_month" && period_type === "TRIAL") {
+        expiredTime = dayjs(purchased_at_ms).add(3, "day").unix();
+      }
+      if (product_id === "PRO_month" && period_type !== "TRIAL") {
         expiredTime = dayjs(purchased_at_ms).add(1, "month").unix();
       }
 
@@ -86,12 +98,12 @@ export async function POST(request: NextRequest) {
       await stmt
         .bind(
           app_user_id,
-          subscriber_attributes?.email,
+          email,
           aliases?.join(","),
           original_app_user_id,
           "revenuecat" + product_id,
           "active",
-          purchased_at_ms,
+          dayjs(purchased_at_ms).unix(),
           expiredTime,
         )
         .run();
@@ -99,7 +111,11 @@ export async function POST(request: NextRequest) {
 
     if (type === "PRODUCT_CHANGE") {
       let expiredTime;
-      if (new_product_id === "PRO_month") {
+      if (new_product_id === "PRO_month" && period_type === "TRIAL") {
+        expiredTime = dayjs(purchased_at_ms).add(3, "day").unix();
+      }
+
+      if (new_product_id === "PRO_month" && period_type !== "TRIAL") {
         expiredTime = dayjs(purchased_at_ms).add(1, "month").unix();
       }
 
@@ -120,12 +136,12 @@ export async function POST(request: NextRequest) {
       await stmt
         .bind(
           app_user_id,
-          subscriber_attributes?.email,
+          email,
           aliases?.join(","),
           original_app_user_id,
           "revenuecat" + product_id,
           "active",
-          purchased_at_ms,
+          dayjs(purchased_at_ms).unix(),
           expiredTime,
         )
         .run();
