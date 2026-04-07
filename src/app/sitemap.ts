@@ -1,30 +1,31 @@
 import type { MetadataRoute } from "next";
 import { getSortedPostsData } from "@/lib/blogs";
+import { getSiteUrl } from "@/lib/site";
 
-const BASE_URL = "https://ielts.youshowedu.com";
+const SITE_URL = getSiteUrl();
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticPages: MetadataRoute.Sitemap = [
     {
-      url: BASE_URL,
+      url: SITE_URL,
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 1,
     },
     {
-      url: `${BASE_URL}/blogs`,
+      url: `${SITE_URL}/blogs`,
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 0.9,
     },
     {
-      url: `${BASE_URL}/privacy`,
+      url: `${SITE_URL}/privacy`,
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.3,
     },
     {
-      url: `${BASE_URL}/terms`,
+      url: `${SITE_URL}/terms`,
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.3,
@@ -32,7 +33,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ];
 
   const postPages = getSortedPostsData().map((post) => ({
-    url: `${BASE_URL}/blogs/${post.slug}`,
+    url: `${SITE_URL}/blogs/${post.slug}`,
     lastModified: new Date(post.date),
     changeFrequency: "weekly" as const,
     priority: 0.8,
