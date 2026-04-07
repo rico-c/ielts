@@ -114,6 +114,19 @@ export default function SiteFooter({ showFriendLinks = false }: SiteFooterProps)
                     height="60"
                   />
                 </a>
+                <a
+                  href="https://submitaitools.org"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex w-fit overflow-hidden rounded-[10px] transition-opacity hover:opacity-85"
+                >
+                  <img
+                    src="https://submitaitools.org/static_submitaitools/images/submitaitools.png"
+                    alt="Submit AI Tools"
+                    width="200"
+                    height="60"
+                  />
+                </a>
               </div>
             </div>
           </div>
