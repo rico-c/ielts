@@ -127,6 +127,32 @@ export default function SiteFooter({ showFriendLinks = false }: SiteFooterProps)
                     height="60"
                   />
                 </a>
+                <a
+                  href="https://www.showmysites.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex w-fit transition-opacity hover:opacity-85"
+                >
+                  <img
+                    src="https://www.showmysites.com/static/backlink/gray_border.webp"
+                    alt="ShowMySites Badge"
+                    width="200"
+                    height="60"
+                  />
+                </a>
+                <a
+                  href="https://findly.tools/-2?utm_source=-2"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex w-fit transition-opacity hover:opacity-85"
+                >
+                  <img
+                    src="https://findly.tools/badges/findly-tools-badge-light.svg"
+                    alt="Featured on Findly.tools"
+                    width="175"
+                    height="55"
+                  />
+                </a>
               </div>
             </div>
           </div>
