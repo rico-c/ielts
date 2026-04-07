@@ -87,19 +87,34 @@ export default function SiteFooter({ showFriendLinks = false }: SiteFooterProps)
                   收录与推荐优秀的学习和工具站点。
                 </p>
               </div>
-              <a
-                href="https://twelve.tools"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex w-fit transition-opacity hover:opacity-85"
-              >
-                <img
-                  src="https://twelve.tools/badge0-white.svg"
-                  alt="Featured on Twelve Tools"
-                  width="200"
-                  height="54"
-                />
-              </a>
+              <div className="flex flex-wrap items-center gap-3">
+                <a
+                  href="https://twelve.tools"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex w-fit transition-opacity hover:opacity-85"
+                >
+                  <img
+                    src="https://twelve.tools/badge0-white.svg"
+                    alt="Featured on Twelve Tools"
+                    width="200"
+                    height="54"
+                  />
+                </a>
+                <a
+                  href="https://showmebest.ai"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex w-fit transition-opacity hover:opacity-85"
+                >
+                  <img
+                    src="https://showmebest.ai/badge/feature-badge-white.webp"
+                    alt="Featured on ShowMeBestAI"
+                    width="220"
+                    height="60"
+                  />
+                </a>
+              </div>
             </div>
           </div>
         ) : null}

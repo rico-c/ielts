@@ -120,9 +120,9 @@ export default async function Home() {
               </div>
 
               <h1 className="font-song mb-8 text-5xl font-semibold tracking-tight text-gray-900 sm:text-6xl">
-                2026<span className="text-blue-600">机考改革</span>必备
+                90天突破雅思8分
                 <br />
-                雅思学习神器
+                雅思学习<span className="text-blue-600">神器</span>
               </h1>
 
               <p className="mb-10 max-w-2xl text-xl leading-relaxed text-gray-500">
@@ -154,10 +154,6 @@ export default async function Home() {
                 <div className="flex items-center gap-2">
                   <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
                   剑雅真题练习
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-                  登录后继续训练
                 </div>
               </div>
             </div>
