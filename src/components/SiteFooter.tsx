@@ -1,7 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 
-export default function SiteFooter() {
+interface SiteFooterProps {
+  showFriendLinks?: boolean;
+}
+
+export default function SiteFooter({ showFriendLinks = false }: SiteFooterProps) {
   return (
     <footer className="border-t border-slate-200/80 bg-white/70 pt-16 pb-8 backdrop-blur">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -71,6 +75,34 @@ export default function SiteFooter() {
             </ul>
           </div>
         </div>
+
+        {showFriendLinks ? (
+          <div className="mb-8 rounded-3xl border border-slate-200 bg-slate-50/80 px-6 py-5">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h4 className="text-sm font-semibold tracking-[0.16em] text-slate-900 uppercase">
+                  友情链接
+                </h4>
+                <p className="mt-2 text-sm text-slate-500">
+                  收录与推荐优秀的学习和工具站点。
+                </p>
+              </div>
+              <a
+                href="https://twelve.tools"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex w-fit transition-opacity hover:opacity-85"
+              >
+                <img
+                  src="https://twelve.tools/badge0-white.svg"
+                  alt="Featured on Twelve Tools"
+                  width="200"
+                  height="54"
+                />
+              </a>
+            </div>
+          </div>
+        ) : null}
 
         <div className="border-t border-slate-200 pt-8">
           <div className="flex flex-col items-center justify-center gap-4 text-sm text-slate-400 md:flex-row">

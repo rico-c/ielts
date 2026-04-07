@@ -491,7 +491,7 @@ export default async function Home() {
         </div>
       </main>
 
-      <SiteFooter />
+      <SiteFooter showFriendLinks />
     </div>
   );
 }
