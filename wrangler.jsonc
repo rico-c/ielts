@@ -17,7 +17,7 @@
     "directory": ".open-next/assets",
   },
   "placement": {
-    "region": "azure:japaneast", // Explicit cloud region to run your Worker closest to - e.g. "gcp:us-east4" or "aws:us-east-1"
+    "mode": "smart",
   },
   "observability": {
     "enabled": true,
