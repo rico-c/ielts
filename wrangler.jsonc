@@ -3,37 +3,40 @@
  * https://developers.cloudflare.com/workers/wrangler/configuration/
  */
 {
-	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "ielts",
-	"main": ".open-next/worker.js",
-	"compatibility_date": "2025-10-08",
-	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
-	"ai": {
-		"binding": "AI",
-		"remote": true
-	},
-	"assets": {
-		"binding": "ASSETS",
-		"directory": ".open-next/assets"
-	},
-	"observability": {
-		"enabled": true
-	},
-	"upload_source_maps": true,
-	"d1_databases": [
-		{
-			"binding": "DB",
-			"database_name": "ielts",
-			"database_id": "8dd12c19-28aa-489d-9e46-b167095ef454",
-			"migrations_dir": "migrations",
-			"remote": true
-		}
-	],
-	"r2_buckets": [
-		{
-			"binding": "STORAGE",
-			"bucket_name": "ielts",
-			"remote": true
-		}
-	]
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ielts",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2025-10-08",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "ai": {
+    "binding": "AI",
+    "remote": true,
+  },
+  "placement": {
+    "mode": "smart", // Cloudflare automatically places your Worker closest to the upstream with the most requests
+  },
+  "assets": {
+    "binding": "ASSETS",
+    "directory": ".open-next/assets",
+  },
+  "observability": {
+    "enabled": true,
+  },
+  "upload_source_maps": true,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ielts",
+      "database_id": "8dd12c19-28aa-489d-9e46-b167095ef454",
+      "migrations_dir": "migrations",
+      "remote": true,
+    },
+  ],
+  "r2_buckets": [
+    {
+      "binding": "STORAGE",
+      "bucket_name": "ielts",
+      "remote": true,
+    },
+  ],
 }
